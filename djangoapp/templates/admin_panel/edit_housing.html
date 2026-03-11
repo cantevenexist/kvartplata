@@ -1,0 +1,144 @@
+<!-- templates/admin_panel/edit_housing.html -->
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Редактирование жилого помещения</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <p style="color: {% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% endif %};">
+            {{ message }}
+        </p>
+    {% endfor %}
+{% endif %}
+
+<p>ID: {{ edit_unit.id }}</p>
+
+<hr>
+
+<!-- Текущий владелец -->
+<h3>Владелец</h3>
+{% if current_owner %}
+    <p>{{ current_owner.profile.full_name|default:current_owner.username }} ({{ current_owner.profile.phone_number|default:"нет телефона" }})</p>
+{% else %}
+    <p>Не назначен</p>
+{% endif %}
+
+<hr>
+
+<!-- Поиск владельца -->
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="search">
+    
+    <p>
+        <label>Найти владельца:</label><br>
+        {{ search_form.search_query }}
+        <button type="submit">Найти</button>
+    </p>
+</form>
+
+{% if search_performed %}
+    <h4>Результаты:</h4>
+    {% if search_results %}
+        <table border="1" cellpadding="5">
+            <tr>
+                <th>ID</th>
+                <th>Имя пользователя</th>
+                <th>Email</th>
+                <th>Полное имя</th>
+                <th>Телефон</th>
+                <th>Паспорт</th>
+                <th></th>
+            </tr>
+            {% for result in search_results %}
+            <tr>
+                <td>{{ result.id }}</td>
+                <td>{{ result.username }}
+                    <a href="{% url 'profile' username=result.username %}">
+                        👀 Просмотр
+                    </a>
+                </td>
+                <td>{{ result.email }}</td>
+                <td>{{ result.full_name }}</td>
+                <td>{{ result.phone }}</td>
+                <td>{{ result.passport }}</td>
+                <td>
+                    <button onclick="selectOwner({{ result.id }}, '{{ result.full_name }}')">
+                        Выбрать
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>Ничего не найдено</p>
+    {% endif %}
+{% endif %}
+
+<hr>
+
+<!-- Форма редактирования -->
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save">
+    <input type="hidden" name="owner_id" id="selected_owner_id" value="">
+    
+    <div id="selected_owner_info" style="display: none;">
+        <p>Выбран: <span id="selected_owner_name"></span> <button type="button" onclick="clearOwner()">✖</button></p>
+    </div>
+    
+    <p>
+        <label>
+            <input type="checkbox" name="remove_owner" onchange="toggleRemoveOwner(this)">
+            Удалить владельца
+        </label>
+    </p>
+    
+    <p>
+        <label>Адрес:</label><br>
+        {{ form.address }}
+    </p>
+    
+    <p>
+        <label>Площадь (м²):</label><br>
+        {{ form.total_area }}
+    </p>
+    
+    <button type="submit">Сохранить</button>
+    <button type="button" onclick="goBack()">Отмена</button>
+</form>
+
+
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
+<p>
+    <a href="#" onclick="goBack(); return false;">← Назад</a>
+</p>
+
+<script>
+    function selectOwner(userId, userName) {
+        document.getElementById('selected_owner_id').value = userId;
+        document.getElementById('selected_owner_name').textContent = userName;
+        document.getElementById('selected_owner_info').style.display = 'block';
+        
+        const removeCheckbox = document.querySelector('input[name="remove_owner"]');
+        if (removeCheckbox) removeCheckbox.checked = false;
+    }
+    
+    function clearOwner() {
+        document.getElementById('selected_owner_id').value = '';
+        document.getElementById('selected_owner_info').style.display = 'none';
+    }
+    
+    function toggleRemoveOwner(checkbox) {
+        if (checkbox.checked) clearOwner();
+    }
+    
+    function goBack() {
+        window.history.back();
+    }
+</script>
+{% endblock %}

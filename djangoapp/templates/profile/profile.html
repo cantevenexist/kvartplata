@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<h1>Профиль {{ user_profile.user.username }}</h1>
+
+<div>
+    {% if user_profile.user.is_staff %}
+    STAFF
+    {% if user_profile.full_name %}
+    <p><strong>full_name:</strong> {{ user_profile.full_name }}</p>
+    {% endif %}
+    {% else %}
+    {% if user_profile.full_name %}
+    <p><strong>full_name:</strong> {{ user_profile.full_name }}</p>
+    {% endif %}
+    <p><strong>birth_date:</strong> {{ user_profile.birth_date }}</p>
+    <p><strong>phone_number:</strong> {{ user_profile.phone_number }}</p>
+    <p><strong>passport_number:</strong> {{ user_profile.passport_number }}</p>
+    <p><strong>passport_issued_by:</strong> {{ user_profile.passport_issued_by }}</p>
+    <p><strong>passport_issued_date:</strong> {{ user_profile.passport_issued_date }}</p>
+    <p><strong>registration_address:</strong> {{ user_profile.registration_address }}</p>
+    <p><strong>actual_address:</strong> {{ user_profile.actual_address }}</p>
+    {% endif %}
+</div>
+{% if not user_profile.user.is_staff %}
+{% if user_profile.user.owned_housing_units.all %}
+    <h3>Квартиры</h3>
+    <ul>
+        {% for unit in user_profile.user.owned_housing_units.all %}
+        <li>
+            <a href="{% url 'housing:housing_detail' unit_id=unit.id %}">
+                {{ unit.address }} ({{ unit.total_area }} м²)
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    <p><a href="{% url 'housing:user_housing_list' username=user_profile.user.username %}">Все квартиры →</a></p>
+{% else %}
+    <p>Нет зарегистрированных квартир</p>
+{% endif %}
+{% endif %}
+{% if is_superuser %}
+    <p>
+        <a href="{% url 'admin_panel:edit_profile' user_id=user_profile.user.id %}">
+            ✏️ Редактировать
+        </a>
+    </p>
+{% endif %}
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
+<p>
+    <a href="#" onclick="goBack(); return false;">← Назад</a>
+</p>
+{% endblock %}

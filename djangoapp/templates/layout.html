@@ -1,0 +1,368 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'css/layout.css' %}">
+    {% block head %}{% endblock %}
+    <style>
+        .notification-unread {
+            background-color: #fff5f5 !important;
+            border-left: 3px solid #ff4444;
+        }
+        
+        .notification-read {
+            background-color: white !important;
+            opacity: 0.7;
+        }
+        
+        .notification-item {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: #f8f9fa !important;
+        }
+        
+        .notification-time {
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body style="font-family: Geologica; margin: 0;">
+    {% csrf_token %}
+    
+    <div style="background: #e6e6e6; display: flex; justify-content: space-between; height: 50px;" class="layout_header">
+        <div>
+            <a href="/">main</a>
+        </div>
+        
+        <div style="display: flex; gap: 15px;">
+            {% if user.is_authenticated %}
+                <div style="position: relative;">
+                    <button onclick="toggleNotifications()" style="background: none; border: none; cursor: pointer;">
+                        🔔{% if unread_notifications_count %}({{ unread_notifications_count }}){% endif %}
+                    </button>
+                </div>
+                {% if is_staff %}
+                    {% if is_superuser %}
+                        <a href="/admin_panel/">admin_panel</a>
+                    {% else %}
+                        <a href="/buh_panel/">buh_panel</a>
+                        <a href="/profile/">profile</a>
+                    {% endif %}
+                {% else %}
+                    <a href="/profile/">{{ user.username }}</a>
+                {% endif %}
+                <a href="/account/logout/">logout</a>
+            {% else %}
+                <a href="/account/login/">login</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="notificationsPreview" style="display: none; position: fixed; top: 50px; right: 0; background: white; border: 1px solid #ccc; width: 250px; max-height: 300px; overflow-y: auto; z-index: 1000;">
+        <div style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">
+            Уведомления
+            {% if notifications.count > 5 %}
+            <button onclick="showAllNotifications()" style="float: right; background: none; border: none; cursor: pointer;">Все</button>
+            {% endif %}
+        </div>
+        
+        {% for notification in recent_notifications %}
+            <div onclick="openNotification({{ notification.id }})" 
+                    class="notification-item {% if not notification.is_read %}notification-unread{% else %}notification-read{% endif %}">
+                <div style="text-indent: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">{{ notification.message }}</div>
+                <div class="notification-time" data-timestamp="{{ notification.created_at|date:'c' }}">
+                    {{ notification.created_at|date:"d.m.Y H:i" }}
+                </div>
+            </div>
+        {% empty %}
+            <div style="padding: 20px; text-align: center; color: #666;">Нет уведомлений</div>
+        {% endfor %}
+    </div>
+    
+    <!-- Модальные окна -->
+    <div id="allNotificationsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 0; border-radius: 5px;">
+            <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: bold;">Все уведомления</div>
+                <button onclick="closeAllNotifications()" style="background: none; border: none; cursor: pointer; font-size: 18px;">×</button>
+            </div>
+            <div id="allNotificationsList" style="max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <div id="notificationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="background: white; width: 90%; max-width: 400px; margin: 50px auto; padding: 0; border-radius: 5px;">
+            <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: bold;">Уведомление</div>
+                <button onclick="closeNotification()" style="background: none; border: none; cursor: pointer; font-size: 18px;">×</button>
+            </div>
+            <div style="padding: 20px;">
+                <div id="notificationModalContent" style="text-indent: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;"></div>
+                <div id="notificationModalTime" style="margin-top: 15px; font-size: 12px; color: #666; text-align: right;"></div>
+                <div id="notificationModalUrl" style="margin-top: 15px; text-align: center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scrollable-container">
+        <div class="layout_central_block">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <script>
+        // Функция для форматирования даты в локальное время
+        function formatLocalDateTime(dateString) {
+            if (!dateString) return '';
+            
+            try {
+                // Пытаемся разобрать дату в ISO формате или других форматах
+                let date;
+                
+                if (dateString.includes('T')) {
+                    // ISO формат с 'T'
+                    date = new Date(dateString);
+                } else if (dateString.includes(' ')) {
+                    // Формат "d.m.Y H:i" или подобный
+                    const parts = dateString.split(' ');
+                    const dateParts = parts[0].split('.');
+                    const timeParts = parts[1].split(':');
+                    
+                    if (dateParts.length === 3 && timeParts.length >= 2) {
+                        // d.m.Y H:i
+                        date = new Date(
+                            parseInt(dateParts[2]), // год
+                            parseInt(dateParts[1]) - 1, // месяц (0-based)
+                            parseInt(dateParts[0]), // день
+                            parseInt(timeParts[0]), // часы
+                            parseInt(timeParts[1]), // минуты
+                            timeParts[2] ? parseInt(timeParts[2]) : 0 // секунды
+                        );
+                    } else {
+                        // Пробуем стандартный разбор
+                        date = new Date(dateString);
+                    }
+                } else {
+                    // Пробуем стандартный разбор
+                    date = new Date(dateString);
+                }
+                
+                // Проверяем, что дата валидна
+                if (isNaN(date.getTime())) {
+                    console.warn('Invalid date:', dateString);
+                    return dateString;
+                }
+                
+                // Форматируем в локальное время
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                
+                return `${day}.${month}.${year} ${hours}:${minutes}`;
+            } catch (error) {
+                console.error('Error formatting date:', error, dateString);
+                return dateString;
+            }
+        }
+        
+        // Обновляем все временные метки на странице при загрузке
+        function updateAllLocalTimes() {
+            // В превью уведомлений
+            document.querySelectorAll('.notification-time').forEach(element => {
+                const timestamp = element.getAttribute('data-timestamp');
+                if (timestamp) {
+                    const localTime = formatLocalDateTime(timestamp);
+                    if (localTime && localTime !== timestamp) {
+                        element.textContent = localTime;
+                    }
+                }
+            });
+        }
+        
+        function toggleNotifications() {
+            const preview = document.getElementById('notificationsPreview');
+            preview.style.display = preview.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        function showAllNotifications() {
+            document.getElementById('notificationsPreview').style.display = 'none';
+            document.getElementById('allNotificationsModal').style.display = 'block';
+            loadAllNotifications();
+        }
+        
+        function closeAllNotifications() {
+            document.getElementById('allNotificationsModal').style.display = 'none';
+        }
+        
+        function openNotification(notificationId) {
+            // Сразу обновляем внешний вид для мгновенной обратной связи
+            updateNotificationAppearance(notificationId);
+            
+            // Отмечаем как прочитанное на сервере
+            markNotificationAsRead(notificationId);
+            
+            // Загружаем и показываем содержимое уведомления
+            fetch(`/notifications/${notificationId}/`, {
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('notificationModalContent').textContent = data.notification.message;
+                    
+                    // Форматируем время в локальное
+                    const localTime = formatLocalDateTime(data.notification.created_at);
+                    document.getElementById('notificationModalTime').textContent = localTime;
+                    
+                    const urlContainer = document.getElementById('notificationModalUrl');
+                    if (data.notification.related_url) {
+                        urlContainer.innerHTML = `<a href="${data.notification.related_url}" style="color: #007bff; text-decoration: none; font-weight: 500;">Перейти →</a>`;
+                    } else {
+                        urlContainer.innerHTML = '';
+                    }
+                    
+                    document.getElementById('notificationModal').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading notification:', error);
+            });
+        }
+        
+        function closeNotification() {
+            document.getElementById('notificationModal').style.display = 'none';
+        }
+        
+        function loadAllNotifications() {
+            fetch('/notifications/all/', {
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(r => r.json())
+            .then(data => {
+                const container = document.getElementById('allNotificationsList');
+                container.innerHTML = '';
+                
+                if (data.notifications.length === 0) {
+                    container.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">Нет уведомлений</div>';
+                    return;
+                }
+                
+                data.notifications.forEach(notification => {
+                    const div = document.createElement('div');
+                    div.className = `notification-item ${notification.is_read ? 'notification-read' : 'notification-unread'}`;
+                    div.style=`text-indent: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;`;
+                    div.setAttribute('onclick', `openNotification(${notification.id})`);
+                    
+                    // Форматируем время в локальное
+                    const localTime = formatLocalDateTime(notification.created_at);
+                    
+                    div.innerHTML = `<div>${notification.message}</div><div class="notification-time">${localTime}</div>`;
+                    container.appendChild(div);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading all notifications:', error);
+                const container = document.getElementById('allNotificationsList');
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">Ошибка загрузки уведомлений</div>';
+            });
+        }
+        
+        function markNotificationAsRead(notificationId) {
+            const formData = new FormData();
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            
+            fetch(`/notifications/${notificationId}/mark-read/`, {
+                method: 'POST',
+                body: formData,
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Обновляем счетчик непрочитанных
+                    updateUnreadCount();
+                }
+            })
+            .catch(error => {
+                console.error('Error marking notification as read:', error);
+            });
+        }
+        
+        function updateNotificationAppearance(notificationId) {
+            // Обновляем в превью
+            const previewNotifications = document.querySelectorAll(`#notificationsPreview [onclick="openNotification(${notificationId})"]`);
+            previewNotifications.forEach(element => {
+                element.classList.remove('notification-unread');
+                element.classList.add('notification-read');
+            });
+            
+            // Обновляем в полном списке
+            const allNotifications = document.querySelectorAll(`#allNotificationsList [onclick="openNotification(${notificationId})"]`);
+            allNotifications.forEach(element => {
+                element.classList.remove('notification-unread');
+                element.classList.add('notification-read');
+            });
+        }
+        
+        function updateUnreadCount() {
+            const button = document.querySelector('button[onclick="toggleNotifications()"]');
+            if (button) {
+                const currentText = button.textContent;
+                const match = currentText.match(/🔔\((\d+)\)/);
+                if (match) {
+                    const currentCount = parseInt(match[1]) - 1;
+                    if (currentCount > 0) {
+                        button.textContent = `🔔(${currentCount})`;
+                    } else {
+                        button.textContent = '🔔';
+                    }
+                }
+            }
+        }
+        
+        // Закрытие при клике вне области
+        document.addEventListener('click', function(e) {
+            const preview = document.getElementById('notificationsPreview');
+            const button = document.querySelector('button[onclick="toggleNotifications()"]');
+            
+            if (preview && button && !button.contains(e.target) && !preview.contains(e.target)) {
+                preview.style.display = 'none';
+            }
+            
+            // Закрытие модальных окон при клике на фон
+            if (e.target.id === 'allNotificationsModal') {
+                closeAllNotifications();
+            }
+            if (e.target.id === 'notificationModal') {
+                closeNotification();
+            }
+        });
+        
+        // Обновляем время при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAllLocalTimes();
+        });
+    </script>
+</body>
+</html>

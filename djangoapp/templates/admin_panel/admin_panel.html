@@ -1,0 +1,23 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Панель администратора</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+{% endif %}
+
+<div>
+    <h3>Управление пользователями</h3>
+    <p><a href="{% url 'admin_panel:register_user' %}">➕👤 Регистрация новых пользователей</a></p>
+    <p><a href="{% url 'admin_panel:search_user' %}">🔍👤 Поиск и редактирование профилей</a></p>
+    
+    <h3>Управление жильем</h3>
+    <p><a href="{% url 'admin_panel:register_housing' %}">➕🏠 Регистрация жилых помещений</a></p>
+    <p><a href="{% url 'admin_panel:search_housing' %}">🔍🏠 Поиск и редактирование жилых помещений</a></p>
+
+</div>
+<br>
+<p><a href="/">← Выйти из панели</a></p>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Жилое помещение {{ unit.address }}</h1>
+
+{% if is_staff %}
+    {% if is_superuser %}
+    <p style="color: gray;">Просмотр от имени администратора</p>
+    {% else %}
+    <p style="color: gray;">Просмотр от имени бухгалтера</p>
+    {% endif %}
+{% endif %}
+
+
+<hr>
+
+<table border="0" cellpadding="5">
+    <tr>
+        <td><strong>ID:</strong></td>
+        <td>{{ unit.id }}</td>
+    </tr>
+    <tr>
+        <td><strong>Владелец:</strong></td>
+        <td>
+            {% if unit.owner %}
+            <a href="{% url 'profile' username=unit.owner.username %}">
+                {{ unit.owner.profile.full_name|default:unit.owner.username }}
+            </a>
+            {% else %}
+            <p>Не указан</p>
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Адрес:</strong></td>
+        <td>{{ unit.address }}</td>
+    </tr>
+    <tr>
+        <td><strong>Общая площадь:</strong></td>
+        <td>{{ unit.total_area }} м²</td>
+    </tr>
+    <tr>
+        <td><strong>Дата регистрации:</strong></td>
+        <td>{{ unit.created_at|date:"d.m.Y H:i" }}</td>
+    </tr>
+    <tr>
+        <td><strong>Последнее обновление:</strong></td>
+        <td>{{ unit.updated_at|date:"d.m.Y H:i" }}</td>
+    </tr>
+</table>
+
+<hr>
+
+<p>
+    <!-- Кнопка редактирования для админа или владельца (если нужна) -->
+    {% if is_superuser %}
+        <a href="{% url 'admin_panel:edit_housing' unit_id=unit.id %}">✏️ Редактировать</a>
+        <br>
+    {% endif %}
+    
+    <script>
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+    <p>
+        <a href="#" onclick="goBack(); return false;">← Назад</a>
+    </p>
+</p>
+{% endblock %}

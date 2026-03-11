@@ -1,0 +1,122 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Панель администратора</h1>
+<h1>Поиск жилых помещений</h1>
+<!-- 
+<input type="password" id="password">
+<button onclick="toggle()">Показать пароль</button>
+
+<script>
+function toggle() {
+  const pwd = document.getElementById('password');
+  const btn = event.target;
+  if (pwd.type === 'password') {
+    pwd.type = 'text';
+    btn.textContent = 'Скрыть пароль';
+  } else {
+    pwd.type = 'password';
+    btn.textContent = 'Показать пароль';
+  }
+}
+</script> -->
+
+{% if messages %}
+    {% for message in messages %}
+        <p style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
+            {{ message }}
+        </p>
+    {% endfor %}
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <p>
+        <label>Поиск по адресу или владельцу:</label><br>
+        <input type="text" name="search_query" value="{{ query }}" 
+                placeholder="Введите текст для поиска" 
+                style="width: 400px; padding: 5px;">
+    </p>
+    
+    <p>
+        <button type="submit">🔍 Найти</button>
+        <button type="button" onclick="clearSearch()">✖ Очистить</button>
+    </p>
+</form>
+
+<script>
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+    <p>
+        <a href="#" onclick="goBack(); return false;">← Назад</a>
+    </p>
+<hr>
+
+<h3>
+    {% if showing_all %}
+        Все жилые помещения ({{ total_count }})
+    {% else %}
+        Результаты поиска для "{{ query }}" — найдено: {{ total_count }}
+    {% endif %}
+</h3>
+
+{% if results %}
+    <table border="1" cellpadding="8">
+        <tr style="border: 0 !important">
+            <th colspan="3">Жилое помещение</th>
+            <th style="visibility: hidden;"></th>
+            <th colspan="6">Владелец</th>
+        </tr>
+        <tr>
+            <th>ID</th>
+            <th>Адрес</th>
+            <th>Действие</th>
+            <th style="visibility: hidden;"></th>
+            <th>ID</th>
+            <th>Имя пользователя</th>
+            <th>Email</th>
+            <th>Полное имя</th>
+            <th>Телефон</th>
+            <th>Паспорт</th>
+        </tr>
+        {% for result in results %}
+        <tr>
+            <td>{{ result.unitid }}</td>
+            <td>{{ result.unit }}
+                <a href="{% url 'housing:housing_detail' unit_id=result.unitid %}">Подробнее</a>
+            </td>
+            <td>
+                <a href="{% url 'admin_panel:edit_housing' unit_id=result.unitid %}">
+                    ✏️ Редактировать
+                </a>
+            </td>
+            <td style="visibility: hidden;"></td>
+            {% if result.username %}
+            <td>{{ result.id }}</td>
+            <td>{{ result.username }}
+                <a href="{% url 'profile' username=result.username %}">
+                    👀 Просмотр
+                </a>
+            </td>
+            <td>{{ result.email }}</td>
+            <td>{{ result.full_name }}</td>
+            <td>{{ result.phone }}</td>
+            <td>{{ result.passport }}</td>
+            {% else %}
+            <td colspan="6" style="text-align: center;">Не указан</td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>Пользователи не найдены</p>
+{% endif %}
+
+<script>
+    function clearSearch() {
+        document.querySelector('input[name="search_query"]').value = '';
+        document.querySelector('form').submit();
+    }
+</script>
+{% endblock %}

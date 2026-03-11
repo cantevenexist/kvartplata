@@ -1,0 +1,72 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Панель администратора</h1>
+<h1>Редактирование профиля: {{ edit_user.username }}</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <p style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
+            {{ message }}
+        </p>
+    {% endfor %}
+{% endif %}
+
+<p><strong>Email:</strong> {{ edit_user.email }}</p>
+<p><strong>Дата регистрации:</strong> {{ edit_user.date_joined|date:"d.m.Y" }}</p>
+
+<hr>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <h3>Основная информация</h3>
+    <p>
+        <label>Полное имя:</label><br>
+        {{ form.full_name }}
+    </p>
+    <p>
+        <label>Дата рождения:</label><br>
+        {{ form.birth_date }}
+    </p>
+    <p>
+        <label>Номер телефона:</label><br>
+        {{ form.phone_number }}
+    </p>
+    
+    <h3>Паспортные данные</h3>
+    <p>
+        <label>Номер паспорта:</label><br>
+        {{ form.passport_number }}
+    </p>
+    <p>
+        <label>Кем выдан:</label><br>
+        {{ form.passport_issued_by }}
+    </p>
+    <p>
+        <label>Дата выдачи:</label><br>
+        {{ form.passport_issued_date }}
+    </p>
+    
+    <h3>Адрес</h3>
+    <p>
+        <label>Адрес регистрации:</label><br>
+        {{ form.registration_address }}
+    </p>
+    <p>
+        <label>Фактический адрес:</label><br>
+        {{ form.actual_address }}
+    </p>
+    
+    <hr>
+    
+    <button type="submit">💾 Сохранить изменения</button>
+</form>
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
+<p>
+    <a href="#" onclick="goBack(); return false;">← Назад</a>
+</p>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Панель администратора</h1>
+<h1>Поиск пользователей</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <p style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
+            {{ message }}
+        </p>
+    {% endfor %}
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <p>
+        <label>Поиск по имени, телефону или паспорту:</label><br>
+        <input type="text" name="search_query" value="{{ query }}" 
+                placeholder="Введите текст для поиска (оставьте пустым для показа всех пользователей)" 
+                style="width: 400px; padding: 5px;">
+    </p>
+    
+    <p>
+        <label>Тип пользователя:</label><br>
+        <select name="user_type" style="padding: 5px; width: 200px;">
+            <option value="all" {% if user_type == 'all' %}selected{% endif %}>Все пользователи</option>
+            <option value="staff" {% if user_type == 'staff' %}selected{% endif %}>👔 Только бухгалтеры</option>
+            <option value="owners" {% if user_type == 'owners' %}selected{% endif %}>👤 Только владельцы</option>
+        </select>
+    </p>
+    
+    <p>
+        <button type="submit">🔍 Найти</button>
+        <button type="button" onclick="clearSearch()">✖ Очистить</button>
+    </p>
+</form>
+
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
+<p>
+    <a href="#" onclick="goBack(); return false;">← Назад</a>
+</p>
+<hr>
+
+<h3>
+    {% if showing_all %}
+        Все пользователи ({{ total_count }})
+        {% if user_type == 'staff' %}
+            <span style="color: blue;">(только бухгалтеры)</span>
+        {% elif user_type == 'owners' %}
+            <span style="color: green;">(только владельцы)</span>
+        {% endif %}
+    {% else %}
+        Результаты поиска для "{{ query }}"
+        {% if user_type == 'staff' %}
+            <span style="color: blue;">(только бухгалтеры)</span>
+        {% elif user_type == 'owners' %}
+            <span style="color: green;">(только владельцы)</span>
+        {% endif %}
+        — найдено: {{ total_count }}
+    {% endif %}
+</h3>
+
+{% if results %}
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>ID</th>
+            <th>Статус</th>
+            <th>Имя пользователя</th>
+            <th>Действие</th>
+            <th>Email</th>
+            <th>Полное имя</th>
+            <th>Телефон</th>
+            <th>Паспорт</th>
+        </tr>
+        {% for user in results %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>
+                {% if user.is_staff %}
+                    👔 Бухгалтер
+                {% else %}
+                    👤 Владелец
+                {% endif %}
+            </td>
+            <td>{{ user.username }}
+                <a href="{% url 'profile' username=user.username %}">
+                    👀 Просмотр
+                </a>
+            </td>
+            <td>
+                <a href="{% url 'admin_panel:edit_profile' user_id=user.id %}">
+                    ✏️ Редактировать
+                </a>
+            </td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.full_name }}</td>
+            <td>{{ user.phone }}</td>
+            <td>{{ user.passport }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>Пользователи не найдены</p>
+{% endif %}
+
+<script>
+    function clearSearch() {
+        document.querySelector('input[name="search_query"]').value = '';
+        document.querySelector('form').submit();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,111 @@
+<!-- templates/admin_panel/register_housing.html -->
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Регистрация жилого помещения</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <p style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
+            {{ message }}
+        </p>
+    {% endfor %}
+{% endif %}
+
+<hr>
+
+<!-- Поиск владельца -->
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="search">
+    
+    <p>
+        <label>Поиск владельца:</label><br>
+        {{ search_form.search_query }}
+        <button type="submit">Найти</button>
+    </p>
+</form>
+
+{% if search_performed %}
+    <h4>Результаты:</h4>
+    {% if search_results %}
+        <table border="1" cellpadding="5">
+            <tr>
+                <th>ID</th>
+                <th>Имя пользователя</th>
+                <th>Email</th>
+                <th>Полное имя</th>
+                <th>Телефон</th>
+                <th>Паспорт</th>
+                <th></th>
+            </tr>
+            {% for result in search_results %}
+            <tr>
+                <td>{{ result.id }}</td>
+                <td>{{ result.username }}
+                    <a href="{% url 'profile' username=result.username %}">
+                        👀 Просмотр
+                    </a></td>
+                <td>{{ result.email }}</td>
+                <td>{{ result.full_name }}</td>
+                <td>{{ result.phone }}</td>
+                <td>{{ result.passport }}</td>
+                <td>
+                    <button onclick="selectOwner({{ result.id }}, '{{ result.full_name }}')">
+                        Выбрать
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>Ничего не найдено</p>
+    {% endif %}
+{% endif %}
+
+<hr>
+
+<!-- Форма создания -->
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create">
+    <input type="hidden" name="owner_id" id="selected_owner_id" value="">
+    
+    <div id="selected_owner_info" style="display: none;">
+        <p>Выбран: <span id="selected_owner_name"></span> <button type="button" onclick="clearOwner()">✖</button></p>
+    </div>
+    
+    <p>
+        <label>Адрес:</label><br>
+        {{ form.address }}
+    </p>
+    
+    <p>
+        <label>Площадь (м²):</label><br>
+        {{ form.total_area }}
+    </p>
+    
+    <button type="submit">Создать</button>
+</form>
+
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
+<p>
+    <a href="#" onclick="goBack(); return false;">← Назад</a>
+</p>
+
+<script>
+    function selectOwner(userId, userName) {
+        document.getElementById('selected_owner_id').value = userId;
+        document.getElementById('selected_owner_name').textContent = userName;
+        document.getElementById('selected_owner_info').style.display = 'block';
+    }
+    
+    function clearOwner() {
+        document.getElementById('selected_owner_id').value = '';
+        document.getElementById('selected_owner_info').style.display = 'none';
+    }
+</script>
+{% endblock %}

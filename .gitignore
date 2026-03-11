@@ -1,0 +1,10 @@
+/.env.dev
+/.env.email
+/.env.db
+*.pyc
+__pycache__/
+/.venv
+media
+migrations
+developments
+.DS_Store

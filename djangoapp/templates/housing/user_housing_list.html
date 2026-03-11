@@ -1,0 +1,54 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Жилые помещения пользователя {{ profile_user.username }}</h1>
+
+{% if is_staff %}
+    {% if is_superuser %}
+    <p style="color: gray;">Просмотр от имени администратора</p>
+    {% else %}
+    <p style="color: gray;">Просмотр от имени бухгалтера</p>
+    {% endif %}
+{% endif %}
+
+<hr>
+
+{% if housing_units %}
+    <p>Всего квартир: {{ count }}</p>
+    
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>ID</th>
+            <th>Адрес</th>
+            <th>Площадь</th>
+            <th>Дата добавления</th>
+            <th></th>
+        </tr>
+        {% for unit in housing_units %}
+        <tr>
+            <td>{{ unit.id }}</td>
+            <td>{{ unit.address }}</td>
+            <td>{{ unit.total_area }} м²</td>
+            <td>{{ unit.created_at|date:"d.m.Y" }}</td>
+            <td>
+                <a href="{% url 'housing:housing_detail' unit_id=unit.id %}">Подробнее</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>У пользователя нет зарегистрированных квартир</p>
+{% endif %}
+
+<hr>
+
+<p>
+    <script>
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+    <p>
+        <a href="#" onclick="goBack(); return false;">← Назад</a>
+    </p>
+</p>
+{% endblock %}

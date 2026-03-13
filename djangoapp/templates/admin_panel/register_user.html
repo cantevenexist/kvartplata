@@ -1,126 +1,699 @@
 {% extends 'layout.html' %}
-{% block content %}
-<h1>Панель администратора</h1>
-<!-- templates/admin_panel/register_user.html -->
+{% load static %}
 
-    <h1>Регистрация нового пользователя</h1>
+{% block title %}Регистрация пользователя{% endblock %}
+
+{% block content %}
+<style>
+    .registration-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 24px;
+    }
     
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+    }
+    
+    .form-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .form-header {
+        padding: 20px 24px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .form-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .form-header i {
+        color: #007bff;
+    }
+    
+    .form-body {
+        padding: 24px;
+    }
+    
+    .form-section {
+        margin-bottom: 32px;
+        padding-bottom: 32px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .form-section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    
+    .section-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .section-title i {
+        color: #6c757d;
+        font-size: 18px;
+    }
+    
+    .radio-group {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    
+    .radio-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .radio-label:hover {
+        background: #e9ecef;
+    }
+    
+    .radio-label.selected {
+        background: #e7f3ff;
+        border-color: #007bff;
+    }
+    
+    .radio-icon {
+        font-size: 20px;
+    }
+    
+    .radio-text {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .radio-desc {
+        font-size: 12px;
+        color: #666;
+        margin-left: auto;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .required:after {
+        content: "*";
+        color: #dc3545;
+        margin-left: 4px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    .form-control.error {
+        border-color: #dc3545;
+    }
+    
+    textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+    
+    .form-text {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .password-requirements {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .password-requirements i {
+        color: #28a745;
+        font-size: 18px;
+    }
+    
+    .password-match {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        font-size: 13px;
+    }
+    
+    .match-success {
+        color: #28a745;
+    }
+    
+    .match-error {
+        color: #dc3545;
+    }
+    
+    .info-block {
+        background: #f0f7ff;
+        border: 1px solid #cce5ff;
+        border-radius: 6px;
+        padding: 16px;
+        color: #004085;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .info-block i {
+        font-size: 20px;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+    
+    .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #f5f5f5;
+    }
+    
+    .messages {
+        margin-bottom: 24px;
+    }
+    
+    .message {
+        padding: 14px 18px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .message.success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .message.error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    .message.warning {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+    }
+    
+    .message.info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+    
+    hr {
+        border: none;
+        border-top: 1px solid #e0e0e0;
+        margin: 24px 0;
+    }
+    
+    @media (max-width: 768px) {
+        .registration-container {
+            padding: 16px;
+        }
+        
+        .form-body {
+            padding: 16px;
+        }
+        
+        .radio-group {
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .radio-label {
+            min-width: auto;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="registration-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-user-plus" style="color: #007bff; margin-right: 12px;"></i>
+            Регистрация пользователя
+        </h1>
+        <a href="#" onclick="goBack(); return false;" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Назад в панель
+        </a>
+    </div>
+
     {% if messages %}
+    <div class="messages">
         {% for message in messages %}
-            <p>{{ message }}</p>
+            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                <i class="fas 
+                    {% if message.tags == 'success' %}fa-check-circle
+                    {% elif message.tags == 'error' %}fa-exclamation-circle
+                    {% elif message.tags == 'warning' %}fa-exclamation-triangle
+                    {% else %}fa-info-circle{% endif %}">
+                </i>
+                {{ message }}
+            </div>
         {% endfor %}
+    </div>
     {% endif %}
-    
-    <hr>
-    
-    <form method="post">
-        {% csrf_token %}
-        
-        <h3>Тип пользователя</h3>
-        <div>
-            <label>
-                <input type="radio" name="user_type" value="owner" checked onclick="toggleForms()"> 
-                👤 Владелец квартиры
-            </label>
-            <label>
-                <input type="radio" name="user_type" value="accountant" onclick="toggleForms()"> 
-                💰 Бухгалтер ЖЭУ
-            </label>
+
+    <div class="form-card">
+        <div class="form-header">
+            <h2>
+                <i class="fas fa-id-card"></i>
+                Создание новой учетной записи
+            </h2>
         </div>
         
-        <hr>
-        
-        <h3>Учетная запись</h3>
-        <p>
-            <label>Имя пользователя *</label><br>
-            <input type="text" name="username" required>
-        </p>
-        <p>
-            <label>Email *</label><br>
-            <input type="email" name="email" required>
-        </p>
-        <p>
-            <label>Пароль *</label><br>
-            <input type="password" name="password" required>
-        </p>
-        
-        <!-- Блок для владельца квартиры (все поля) -->
-        <div id="owner-fields">
-            <hr>
-            <h3>Личная информация</h3>
-            <p>
-                <label>Полное имя</label><br>
-                <input type="text" name="full_name">
-            </p>
-            <p>
-                <label>Дата рождения</label><br>
-                <input type="date" name="birth_date">
-            </p>
-            <p>
-                <label>Номер телефона</label><br>
-                <input type="tel" name="phone_number" placeholder="+7 (999) 999-99-99">
-            </p>
-            
-            <hr>
-            <h3>Паспортные данные</h3>
-            <p>
-                <label>Номер паспорта</label><br>
-                <input type="text" name="passport_number" placeholder="0000 000000">
-            </p>
-            <p>
-                <label>Кем выдан</label><br>
-                <input type="text" name="passport_issued_by">
-            </p>
-            <p>
-                <label>Дата выдачи</label><br>
-                <input type="date" name="passport_issued_date">
-            </p>
-            
-            <hr>
-            <h3>Адрес</h3>
-            <p>
-                <label>Адрес регистрации</label><br>
-                <textarea name="registration_address" rows="3" cols="50"></textarea>
-            </p>
-            <p>
-                <label>Фактический адрес</label><br>
-                <textarea name="actual_address" rows="3" cols="50"></textarea>
-            </p>
+        <div class="form-body">
+            <form method="post" id="registrationForm" onsubmit="return validateForm()">
+                {% csrf_token %}
+                
+                <!-- Тип пользователя -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-user-tag"></i>
+                        Тип пользователя
+                    </div>
+                    
+                    <div class="radio-group">
+                        <label class="radio-label {% if not form_data.user_type or form_data.user_type == 'owner' %}selected{% endif %}" id="ownerLabel">
+                            <input type="radio" name="user_type" value="owner" {% if not form_data.user_type or form_data.user_type == 'owner' %}checked{% endif %} onclick="toggleForms()">
+                            <span class="radio-icon">👤</span>
+                            <span class="radio-text">Владелец квартиры</span>
+                            <span class="radio-desc">Полный доступ к профилю</span>
+                        </label>
+                        
+                        <label class="radio-label {% if form_data.user_type == 'accountant' %}selected{% endif %}" id="accountantLabel">
+                            <input type="radio" name="user_type" value="accountant" {% if form_data.user_type == 'accountant' %}checked{% endif %} onclick="toggleForms()">
+                            <span class="radio-icon">💰</span>
+                            <span class="radio-text">Бухгалтер ЖЭУ</span>
+                            <span class="radio-desc">Доступ к бухгалтерии</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Учетная запись -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-lock"></i>
+                        Учетная запись
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="required">Имя пользователя</label>
+                        <input type="text" 
+                               name="username" 
+                               class="form-control" 
+                               value="{{ form_data.username|default:'' }}"
+                               placeholder="Введите логин" 
+                               required>
+                        <div class="form-text">Только латинские буквы, цифры и символы @/./+/-/_</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="required">Email</label>
+                        <input type="email" 
+                               name="email" 
+                               class="form-control" 
+                               value="{{ form_data.email|default:'' }}"
+                               placeholder="user@example.com" 
+                               required>
+                    </div>
+                    
+                    <div class="password-requirements">
+                        <i class="fas fa-info-circle"></i>
+                        Пароль должен содержать минимум 8 символов
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="required">Пароль</label>
+                            <input type="password" 
+                                   name="password" 
+                                   id="password" 
+                                   class="form-control" 
+                                   onkeyup="checkPasswordMatch()"
+                                   required 
+                                   minlength="8">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="required">Подтверждение пароля</label>
+                            <input type="password" 
+                                   name="confirm_password" 
+                                   id="confirm_password" 
+                                   class="form-control" 
+                                   onkeyup="checkPasswordMatch()"
+                                   required 
+                                   minlength="8">
+                        </div>
+                    </div>
+                    
+                    <div class="password-match" id="passwordMatchMessage"></div>
+                </div>
+                
+                <!-- Блок для владельца квартиры -->
+                <div id="owner-fields" {% if form_data.user_type == 'accountant' %}style="display: none;"{% endif %}>
+                    <div class="form-section">
+                        <div class="section-title">
+                            <i class="fas fa-user"></i>
+                            Личная информация
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Полное имя</label>
+                            <input type="text" 
+                                   name="full_name" 
+                                   class="form-control" 
+                                   value="{{ form_data.full_name|default:'' }}"
+                                   placeholder="Иванов Иван Иванович">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Дата рождения</label>
+                                <input type="date" 
+                                       name="birth_date" 
+                                       class="form-control"
+                                       value="{{ form_data.birth_date|default:'' }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Номер телефона</label>
+                                <input type="tel" 
+                                       name="phone_number" 
+                                       class="form-control" 
+                                       value="{{ form_data.phone_number|default:'' }}"
+                                       placeholder="+7 (999) 999-99-99">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="section-title">
+                            <i class="fas fa-passport"></i>
+                            Паспортные данные
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Номер паспорта</label>
+                                <input type="text" 
+                                       name="passport_number" 
+                                       class="form-control" 
+                                       value="{{ form_data.passport_number|default:'' }}"
+                                       placeholder="0000 000000">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Дата выдачи</label>
+                                <input type="date" 
+                                       name="passport_issued_date" 
+                                       class="form-control"
+                                       value="{{ form_data.passport_issued_date|default:'' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Кем выдан</label>
+                            <input type="text" 
+                                   name="passport_issued_by" 
+                                   class="form-control" 
+                                   value="{{ form_data.passport_issued_by|default:'' }}"
+                                   placeholder="Наименование отделения">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="section-title">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Адрес
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Адрес регистрации</label>
+                            <textarea name="registration_address" 
+                                      class="form-control" 
+                                      placeholder="Город, улица, дом, квартира">{{ form_data.registration_address|default:'' }}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Фактический адрес</label>
+                            <textarea name="actual_address" 
+                                      class="form-control" 
+                                      placeholder="Если отличается от регистрации">{{ form_data.actual_address|default:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Блок для бухгалтера -->
+                <div id="accountant-fields" {% if form_data.user_type != 'accountant' %}style="display: none;"{% endif %}>
+                    <div class="form-section">
+                        <div class="info-block">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <strong>Бухгалтер ЖЭУ</strong><br>
+                                Пользователь получит права доступа к панели бухгалтера и сможет управлять платежами, начислениями и задолженностями.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Кнопки -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="submitBtn">
+                        <i class="fas fa-save"></i>
+                        Создать пользователя
+                    </button>
+                    <a href="#" onclick="goBack(); return false;" class="btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Отмена
+                    </a>
+                </div>
+            </form>
         </div>
-        
-        <!-- Блок для бухгалтера (минимально) -->
-        <div id="accountant-fields" style="display: none;">
-            <hr>
-            <h3>Информация о бухгалтере</h3>
-            <p><em>Бухгалтер получит права доступа в панели бухгалтера</em></p>
-        </div>
-        
-        <hr>
-        <button type="submit">Создать пользователя</button>
-    </form>
+    </div>
+</div>
+
+<script>
+    function goBack() {
+        window.history.back();
+    }
     
-    <script>
-        function goBack() {
-            window.history.back();
+    function toggleForms() {
+        const ownerRadio = document.querySelector('input[value="owner"]');
+        const accountantRadio = document.querySelector('input[value="accountant"]');
+        const ownerFields = document.getElementById('owner-fields');
+        const accountantFields = document.getElementById('accountant-fields');
+        const ownerLabel = document.getElementById('ownerLabel');
+        const accountantLabel = document.getElementById('accountantLabel');
+        
+        if (ownerRadio.checked) {
+            ownerFields.style.display = 'block';
+            accountantFields.style.display = 'none';
+            ownerLabel.classList.add('selected');
+            accountantLabel.classList.remove('selected');
+        } else {
+            ownerFields.style.display = 'none';
+            accountantFields.style.display = 'block';
+            ownerLabel.classList.remove('selected');
+            accountantLabel.classList.add('selected');
         }
-    </script>
-    <p>
-        <a href="#" onclick="goBack(); return false;">← Назад</a>
-    </p>
+    }
     
-    <script>
-        function toggleForms() {
-            const ownerRadio = document.querySelector('input[value="owner"]');
-            const ownerFields = document.getElementById('owner-fields');
-            const accountantFields = document.getElementById('accountant-fields');
-            
-            if (ownerRadio.checked) {
-                ownerFields.style.display = 'block';
-                accountantFields.style.display = 'none';
-            } else {
-                ownerFields.style.display = 'none';
-                accountantFields.style.display = 'block';
-            }
+    function checkPasswordMatch() {
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirm_password').value;
+        const messageDiv = document.getElementById('passwordMatchMessage');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        if (password.length < 8) {
+            messageDiv.innerHTML = '<span class="match-error"><i class="fas fa-times-circle"></i> Пароль должен быть минимум 8 символов</span>';
+            submitBtn.disabled = true;
+        } else if (confirm.length === 0) {
+            messageDiv.innerHTML = '';
+            submitBtn.disabled = true;
+        } else if (password === confirm) {
+            messageDiv.innerHTML = '<span class="match-success"><i class="fas fa-check-circle"></i> Пароли совпадают</span>';
+            submitBtn.disabled = false;
+        } else {
+            messageDiv.innerHTML = '<span class="match-error"><i class="fas fa-times-circle"></i> Пароли не совпадают</span>';
+            submitBtn.disabled = true;
         }
-    </script>
+    }
+    
+    function validateForm() {
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirm_password').value;
+        
+        if (password.length < 8) {
+            alert('Пароль должен содержать минимум 8 символов');
+            return false;
+        }
+        
+        if (password !== confirm) {
+            alert('Пароли не совпадают');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Подсветка выбранного радио при загрузке
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleForms();
+        checkPasswordMatch();
+    });
+</script>
 {% endblock %}

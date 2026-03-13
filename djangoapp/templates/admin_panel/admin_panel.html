@@ -1,23 +1,528 @@
 {% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Панель администратора{% endblock %}
+
 {% block content %}
-<h1>Панель администратора</h1>
-
-{% if messages %}
-    {% for message in messages %}
-        <p>{{ message }}</p>
-    {% endfor %}
-{% endif %}
-
-<div>
-    <h3>Управление пользователями</h3>
-    <p><a href="{% url 'admin_panel:register_user' %}">➕👤 Регистрация новых пользователей</a></p>
-    <p><a href="{% url 'admin_panel:search_user' %}">🔍👤 Поиск и редактирование профилей</a></p>
+<style>
+    .admin-panel {
+        padding: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
     
-    <h3>Управление жильем</h3>
-    <p><a href="{% url 'admin_panel:register_housing' %}">➕🏠 Регистрация жилых помещений</a></p>
-    <p><a href="{% url 'admin_panel:search_housing' %}">🔍🏠 Поиск и редактирование жилых помещений</a></p>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+    }
+    
+    .section-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 24px;
+        margin-top: 24px;
+    }
+    
+    .section-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: box-shadow 0.2s;
+    }
+    
+    .section-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .section-header {
+        padding: 16px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .section-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .section-header i {
+        color: #007bff;
+        font-size: 20px;
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    .action-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .action-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .action-item:last-child {
+        border-bottom: none;
+    }
+    
+    .action-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #333;
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        flex: 1;
+    }
+    
+    .action-link:hover {
+        background: #f5f5f5;
+    }
+    
+    .action-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f0f7ff;
+        border-radius: 8px;
+        color: #007bff;
+    }
+    
+    .action-icon i {
+        font-size: 16px;
+    }
+    
+    .action-content {
+        flex: 1;
+    }
+    
+    .action-title {
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+    
+    .action-description {
+        font-size: 12px;
+        color: #999;
+    }
+    
+    .action-badge {
+        font-size: 12px;
+        color: #007bff;
+        background: #f0f7ff;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+    
+    .stats-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 24px;
+    }
+    
+    .stats-title {
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 16px;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 500;
+        color: #007bff;
+        margin-bottom: 4px;
+    }
+    
+    .stat-label {
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .messages {
+        margin-bottom: 24px;
+    }
+    
+    .message {
+        padding: 12px 16px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .message.success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .message.error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    .message.info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+    
+    /* Кнопки для тарифов */
+    .tariff-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .tariff-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .tariff-btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    
+    .tariff-btn-primary:hover {
+        background: #0056b3;
+    }
+    
+    .tariff-btn-secondary {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+    
+    .tariff-btn-secondary:hover {
+        background: #f5f5f5;
+    }
+    
+    .tariff-stats {
+        display: flex;
+        gap: 16px;
+        margin-top: 8px;
+    }
+    
+    .tariff-stat {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .tariff-stat i {
+        color: #28a745;
+    }
+    
+    .tariff-stat.warning i {
+        color: #ffc107;
+    }
+    
+    .tariff-stat.archived i {
+        color: #6c757d;
+    }
+    
+    @media (max-width: 768px) {
+        .admin-panel {
+            padding: 16px;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .section-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .tariff-buttons {
+            flex-direction: column;
+        }
+        
+        .action-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        
+        .action-link {
+            width: 100%;
+        }
+        
+        .action-badge {
+            align-self: flex-start;
+        }
+    }
+</style>
 
+<div class="admin-panel">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-cog" style="color: #007bff; margin-right: 12px;"></i>
+            Панель администратора
+        </h1>
+        <a href="/" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Выйти из панели
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}" style="margin-right: 8px;"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="section-grid">
+        <!-- Управление пользователями -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-users"></i>
+                    Управление пользователями
+                </h3>
+            </div>
+            <div class="section-body">
+                <div class="action-list">
+                    <div class="action-item">
+                        <a href="{% url 'admin_panel:register_user' %}" class="action-link">
+                            <span class="action-icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            <div class="action-content">
+                                <div class="action-title">Регистрация новых пользователей</div>
+                                <div class="action-description">Создание учетных записей владельцев и бухгалтеров</div>
+                            </div>
+                        </a>
+                        <span class="action-badge">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
+                    
+                    <div class="action-item">
+                        <a href="{% url 'admin_panel:search_user' %}" class="action-link">
+                            <span class="action-icon">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <div class="action-content">
+                                <div class="action-title">Поиск и редактирование профилей</div>
+                                <div class="action-description">Поиск пользователей и изменение их данных</div>
+                            </div>
+                        </a>
+                        <span class="action-badge">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Управление жильем -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-building"></i>
+                    Управление жильем
+                </h3>
+            </div>
+            <div class="section-body">
+                <div class="action-list">
+                    <div class="action-item">
+                        <a href="{% url 'admin_panel:register_housing' %}" class="action-link">
+                            <span class="action-icon">
+                                <i class="fas fa-home"></i>
+                            </span>
+                            <div class="action-content">
+                                <div class="action-title">Регистрация жилых помещений</div>
+                                <div class="action-description">Добавление новых квартир и домов</div>
+                            </div>
+                        </a>
+                        <span class="action-badge">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
+                    
+                    <div class="action-item">
+                        <a href="{% url 'admin_panel:search_housing' %}" class="action-link">
+                            <span class="action-icon">
+                                <i class="fas fa-search-location"></i>
+                            </span>
+                            <div class="action-content">
+                                <div class="action-title">Поиск и редактирование жилых помещений</div>
+                                <div class="action-description">Поиск и изменение данных о жилье</div>
+                            </div>
+                        </a>
+                        <span class="action-badge">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Управление тарифами (новая секция) -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-chart-line"></i>
+                    Управление тарифами
+                </h3>
+            </div>
+            <div class="section-body">
+                <div class="action-list">
+                    <div class="action-item">
+                        <a href="{% url 'payment_service:tariff_list' %}" class="action-link">
+                            <span class="action-icon">
+                                <i class="fas fa-list"></i>
+                            </span>
+                            <div class="action-content">
+                                <div class="action-title">Все тарифы</div>
+                                <div class="action-description">Просмотр и управление тарифами</div>
+                            </div>
+                        </a>
+                        <span class="action-badge">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Статистика тарифов -->
+                <div class="tariff-stats">
+                    <div class="tariff-stat">
+                        <i class="fas fa-circle" style="color: #28a745;"></i>
+                        <span>Активные: {{ active_tariffs_count|default:"0" }}</span>
+                    </div>
+                    <div class="tariff-stat warning">
+                        <i class="fas fa-circle" style="color: #ffc107;"></i>
+                        <span>Просроченные: {{ expired_tariffs_count|default:"0" }}</span>
+                    </div>
+                    <div class="tariff-stat archived">
+                        <i class="fas fa-circle" style="color: #6c757d;"></i>
+                        <span>В архиве: {{ archived_tariffs_count|default:"0" }}</span>
+                    </div>
+                </div>
+
+                <!-- Кнопки для тарифов -->
+                <div class="tariff-buttons">
+                    <a href="{% url 'payment_service:tariff_create' %}" class="tariff-btn tariff-btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Создать тариф
+                    </a>
+                    <a href="{% url 'payment_service:tariff_list' %}" class="tariff-btn tariff-btn-secondary">
+                        <i class="fas fa-edit"></i>
+                        Управление
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Дополнительная статистика (опционально) -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-chart-pie"></i>
+                    Краткая статистика
+                </h3>
+            </div>
+            <div class="section-body">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ users_count|default:"0" }}</div>
+                        <div class="stat-label">Пользователей</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ housing_count|default:"0" }}</div>
+                        <div class="stat-label">Помещений</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ active_tariffs_count|default:"0" }}</div>
+                        <div class="stat-label">Активных тарифов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<br>
-<p><a href="/">← Выйти из панели</a></p>
 {% endblock %}

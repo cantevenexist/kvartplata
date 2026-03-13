@@ -1,72 +1,702 @@
 {% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Редактирование профиля{% endblock %}
+
 {% block content %}
-<h1>Панель администратора</h1>
-<h1>Редактирование профиля: {{ edit_user.username }}</h1>
+<style>
+    .edit-profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+    }
+    
+    /* Информационная карточка */
+    .info-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .info-header {
+        padding: 16px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .info-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .user-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #e7f3ff;
+        border-radius: 20px;
+        font-size: 13px;
+        color: #007bff;
+    }
+    
+    .user-badge i {
+        font-size: 14px;
+    }
+    
+    .info-body {
+        padding: 20px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .info-label {
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+        font-size: 15px;
+        color: #333;
+        font-weight: 500;
+    }
+    
+    /* Карточка формы */
+    .form-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .form-header {
+        padding: 20px 24px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .form-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .form-header i {
+        color: #007bff;
+    }
+    
+    .btn-password {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-password:hover {
+        background: #5a6268;
+    }
+    
+    .form-body {
+        padding: 24px;
+    }
+    
+    .form-section {
+        margin-bottom: 32px;
+        padding-bottom: 32px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .form-section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    
+    .section-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .section-title i {
+        color: #6c757d;
+        font-size: 18px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+    
+    .form-text {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #f5f5f5;
+    }
+    
+    /* Модальное окно смены пароля */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    
+    .modal-header {
+        padding: 16px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .modal-header button {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #666;
+    }
+    
+    .modal-header button:hover {
+        color: #333;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .password-requirements {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .password-requirements i {
+        color: #28a745;
+        margin-right: 6px;
+    }
+    
+    .messages {
+        margin-bottom: 24px;
+    }
+    
+    .message {
+        padding: 14px 18px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .message.success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .message.error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    .message.warning {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+    }
+    
+    .message.info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+    
+    @media (max-width: 768px) {
+        .edit-profile-container {
+            padding: 16px;
+        }
+        
+        .form-body {
+            padding: 16px;
+        }
+        
+        .info-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 
-{% if messages %}
-    {% for message in messages %}
-        <p style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
-            {{ message }}
-        </p>
-    {% endfor %}
-{% endif %}
+<div class="edit-profile-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-user-edit" style="color: #007bff;"></i>
+            Редактирование профиля
+        </h1>
+        <a href="#" onclick="goBack(); return false;" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Вернуться к поиску
+        </a>
+    </div>
 
-<p><strong>Email:</strong> {{ edit_user.email }}</p>
-<p><strong>Дата регистрации:</strong> {{ edit_user.date_joined|date:"d.m.Y" }}</p>
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                <i class="fas 
+                    {% if message.tags == 'success' %}fa-check-circle
+                    {% elif message.tags == 'error' %}fa-exclamation-circle
+                    {% elif message.tags == 'warning' %}fa-exclamation-triangle
+                    {% else %}fa-info-circle{% endif %}">
+                </i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
-<hr>
+    <!-- Информация о пользователе -->
+    <div class="info-card">
+        <div class="info-header">
+            <h3>
+                <i class="fas fa-id-card"></i>
+                Информация о пользователе
+            </h3>
+            <span class="user-badge">
+                {% if edit_user.is_staff %}
+                    <i class="fas fa-user-tie"></i>
+                    Бухгалтер
+                {% else %}
+                    <i class="fas fa-user"></i>
+                    Владелец квартиры
+                {% endif %}
+            </span>
+        </div>
+        <div class="info-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Имя пользователя</span>
+                    <span class="info-value">@{{ edit_user.username }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email</span>
+                    <span class="info-value">{{ edit_user.email }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Дата регистрации</span>
+                    <span class="info-value">{{ edit_user.date_joined|date:"d.m.Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Последний вход</span>
+                    <span class="info-value">{{ edit_user.last_login|date:"d.m.Y H:i"|default:"—" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<form method="post">
-    {% csrf_token %}
-    
-    <h3>Основная информация</h3>
-    <p>
-        <label>Полное имя:</label><br>
-        {{ form.full_name }}
-    </p>
-    <p>
-        <label>Дата рождения:</label><br>
-        {{ form.birth_date }}
-    </p>
-    <p>
-        <label>Номер телефона:</label><br>
-        {{ form.phone_number }}
-    </p>
-    
-    <h3>Паспортные данные</h3>
-    <p>
-        <label>Номер паспорта:</label><br>
-        {{ form.passport_number }}
-    </p>
-    <p>
-        <label>Кем выдан:</label><br>
-        {{ form.passport_issued_by }}
-    </p>
-    <p>
-        <label>Дата выдачи:</label><br>
-        {{ form.passport_issued_date }}
-    </p>
-    
-    <h3>Адрес</h3>
-    <p>
-        <label>Адрес регистрации:</label><br>
-        {{ form.registration_address }}
-    </p>
-    <p>
-        <label>Фактический адрес:</label><br>
-        {{ form.actual_address }}
-    </p>
-    
-    <hr>
-    
-    <button type="submit">💾 Сохранить изменения</button>
-</form>
+    <!-- Форма редактирования -->
+    <div class="form-card">
+        <div class="form-header">
+            <h2>
+                <i class="fas fa-pen"></i>
+                Редактирование данных
+            </h2>
+            <button type="button" class="btn-password" onclick="openPasswordModal()">
+                <i class="fas fa-key"></i>
+                Сменить пароль
+            </button>
+        </div>
+        
+        <div class="form-body">
+            <form method="post" id="profileForm">
+                {% csrf_token %}
+                
+                <!-- Основная информация -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-user"></i>
+                        Основная информация
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Полное имя</label>
+                        {{ form.full_name }}
+                        {% if form.full_name.help_text %}
+                        <div class="form-text">{{ form.full_name.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Дата рождения</label>
+                            {{ form.birth_date }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Номер телефона</label>
+                            {{ form.phone_number }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Паспортные данные -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-passport"></i>
+                        Паспортные данные
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Номер паспорта</label>
+                            {{ form.passport_number }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Дата выдачи</label>
+                            {{ form.passport_issued_date }}
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Кем выдан</label>
+                        {{ form.passport_issued_by }}
+                    </div>
+                </div>
+                
+                <!-- Адрес -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Адрес
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Адрес регистрации</label>
+                        {{ form.registration_address }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Фактический адрес</label>
+                        {{ form.actual_address }}
+                        <div class="form-text">Если отличается от адреса регистрации</div>
+                    </div>
+                </div>
+                
+                <!-- Кнопки -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i>
+                        Сохранить изменения
+                    </button>
+                    <a href="#" onclick="goBack(); return false;" class="btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно смены пароля -->
+<div id="passwordModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>
+                <i class="fas fa-key" style="color: #007bff;"></i>
+                Смена пароля
+            </h3>
+            <button onclick="closePasswordModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="password-requirements">
+                <i class="fas fa-info-circle"></i>
+                Пароль должен содержать минимум 8 символов
+            </div>
+            
+            <form method="post" id="passwordForm">
+                {% csrf_token %}
+                <input type="hidden" name="change_password" value="1">
+                
+                <div class="form-group">
+                    <label>Новый пароль</label>
+                    <input type="password" name="new_password" class="form-control" required minlength="8">
+                </div>
+                
+                <div class="form-group">
+                    <label>Подтверждение пароля</label>
+                    <input type="password" name="confirm_password" class="form-control" required minlength="8">
+                </div>
+                
+                <div class="form-actions" style="margin-top: 20px; padding-top: 0; border-top: none;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">
+                        <i class="fas fa-check"></i>
+                        Изменить пароль
+                    </button>
+                    <button type="button" onclick="closePasswordModal()" class="btn-secondary" style="flex: 1;">
+                        <i class="fas fa-times"></i>
+                        Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     function goBack() {
         window.history.back();
     }
+    
+    function openPasswordModal() {
+        document.getElementById('passwordModal').classList.add('active');
+    }
+    
+    function closePasswordModal() {
+        document.getElementById('passwordModal').classList.remove('active');
+        // Очищаем поля пароля
+        document.querySelectorAll('#passwordForm input[type="password"]').forEach(input => {
+            input.value = '';
+        });
+    }
+    
+    // Закрытие модального окна при клике на фон
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('passwordModal');
+        if (e.target === modal) {
+            closePasswordModal();
+        }
+    });
+    
+    // Валидация пароля перед отправкой
+    document.getElementById('passwordForm').addEventListener('submit', function(e) {
+        const newPass = document.querySelector('input[name="new_password"]').value;
+        const confirmPass = document.querySelector('input[name="confirm_password"]').value;
+        
+        if (newPass.length < 8) {
+            e.preventDefault();
+            alert('Пароль должен содержать минимум 8 символов');
+            return;
+        }
+        
+        if (newPass !== confirmPass) {
+            e.preventDefault();
+            alert('Пароли не совпадают');
+            return;
+        }
+    });
 </script>
-<p>
-    <a href="#" onclick="goBack(); return false;">← Назад</a>
-</p>
 {% endblock %}

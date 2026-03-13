@@ -30,4 +30,5 @@ urlpatterns = [
     path('admin_panel/', include('admin_panel.urls')),
     path('housing/', include('housing.urls')),
     path('buh_panel/', include('buh_panel.urls')),
+    path('payment_service/', include('payment_service.urls')),
 ]

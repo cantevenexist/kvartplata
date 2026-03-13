@@ -1,69 +1,543 @@
 {% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Жилое помещение {{ unit.address }}{% endblock %}
+
 {% block content %}
-<h1>Жилое помещение {{ unit.address }}</h1>
-
-{% if is_staff %}
-    {% if is_superuser %}
-    <p style="color: gray;">Просмотр от имени администратора</p>
-    {% else %}
-    <p style="color: gray;">Просмотр от имени бухгалтера</p>
-    {% endif %}
-{% endif %}
-
-
-<hr>
-
-<table border="0" cellpadding="5">
-    <tr>
-        <td><strong>ID:</strong></td>
-        <td>{{ unit.id }}</td>
-    </tr>
-    <tr>
-        <td><strong>Владелец:</strong></td>
-        <td>
-            {% if unit.owner %}
-            <a href="{% url 'profile' username=unit.owner.username %}">
-                {{ unit.owner.profile.full_name|default:unit.owner.username }}
-            </a>
-            {% else %}
-            <p>Не указан</p>
-            {% endif %}
-        </td>
-    </tr>
-    <tr>
-        <td><strong>Адрес:</strong></td>
-        <td>{{ unit.address }}</td>
-    </tr>
-    <tr>
-        <td><strong>Общая площадь:</strong></td>
-        <td>{{ unit.total_area }} м²</td>
-    </tr>
-    <tr>
-        <td><strong>Дата регистрации:</strong></td>
-        <td>{{ unit.created_at|date:"d.m.Y H:i" }}</td>
-    </tr>
-    <tr>
-        <td><strong>Последнее обновление:</strong></td>
-        <td>{{ unit.updated_at|date:"d.m.Y H:i" }}</td>
-    </tr>
-</table>
-
-<hr>
-
-<p>
-    <!-- Кнопка редактирования для админа или владельца (если нужна) -->
-    {% if is_superuser %}
-        <a href="{% url 'admin_panel:edit_housing' unit_id=unit.id %}">✏️ Редактировать</a>
-        <br>
-    {% endif %}
+<style>
+    .housing-detail-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 24px;
+    }
     
-    <script>
-        function goBack() {
-            window.history.back();
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+    }
+    
+    /* Уведомление о режиме просмотра */
+    .view-mode-notice {
+        background: #f0f7ff;
+        border: 1px solid #cce5ff;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #004085;
+    }
+    
+    .view-mode-notice i {
+        font-size: 20px;
+        color: #007bff;
+    }
+    
+    .view-mode-notice span {
+        font-size: 14px;
+    }
+    
+    /* Карточка информации */
+    .info-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .info-header {
+        padding: 20px 24px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .info-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .info-header i {
+        color: #28a745;
+    }
+    
+    .housing-id {
+        background: #e9ecef;
+        color: #495057;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .info-body {
+        padding: 24px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+    
+    .info-section {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .info-section:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+    
+    .section-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .section-title i {
+        color: #6c757d;
+        font-size: 18px;
+    }
+    
+    .info-row {
+        display: flex;
+        margin-bottom: 16px;
+        align-items: flex-start;
+    }
+    
+    .info-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .info-label {
+        width: 160px;
+        font-size: 13px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        flex-shrink: 0;
+    }
+    
+    .info-value {
+        flex: 1;
+        font-size: 15px;
+        color: #333;
+        font-weight: 500;
+        word-break: break-word;
+    }
+    
+    .info-value.address {
+        background: #f8f9fa;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+        font-weight: normal;
+    }
+    
+    /* Карточка владельца */
+    .owner-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .owner-header {
+        padding: 16px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .owner-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .owner-header i {
+        color: #007bff;
+    }
+    
+    .owner-body {
+        padding: 20px;
+    }
+    
+    .owner-link {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        text-decoration: none;
+        color: inherit;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .owner-link:hover {
+        background: #e9ecef;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .owner-avatar {
+        width: 48px;
+        height: 48px;
+        background: #e7f3ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #007bff;
+        font-size: 24px;
+    }
+    
+    .owner-info {
+        flex: 1;
+    }
+    
+    .owner-name {
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 4px;
+    }
+    
+    .owner-details {
+        display: flex;
+        gap: 16px;
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .owner-detail {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .empty-owner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        color: #999;
+    }
+    
+    .empty-owner i {
+        font-size: 24px;
+        opacity: 0.5;
+    }
+    
+    /* Дополнительная информация */
+    .metadata-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+    }
+    
+    .metadata-item {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 12px;
+        text-align: center;
+    }
+    
+    .metadata-label {
+        font-size: 11px;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    
+    .metadata-value {
+        font-size: 15px;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    /* Кнопки действий */
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #f5f5f5;
+    }
+    
+    @media (max-width: 768px) {
+        .housing-detail-container {
+            padding: 16px;
         }
-    </script>
-    <p>
-        <a href="#" onclick="goBack(); return false;">← Назад</a>
-    </p>
-</p>
+        
+        .info-row {
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .info-label {
+            width: 100%;
+            font-size: 12px;
+        }
+        
+        .info-value {
+            width: 100%;
+            font-size: 14px;
+        }
+        
+        .owner-details {
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .metadata-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="housing-detail-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-door-open" style="color: #28a745;"></i>
+            Жилое помещение
+        </h1>
+        <a href="#" onclick="goBack(); return false;" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Назад
+        </a>
+    </div>
+
+    {% if is_staff %}
+    <div class="view-mode-notice">
+        <i class="fas {% if is_superuser %}fa-crown{% else %}fa-eye{% endif %}"></i>
+        <span>
+            {% if is_superuser %}
+                Просмотр от имени администратора
+            {% else %}
+                Просмотр от имени бухгалтера
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- Основная информация -->
+    <div class="info-card">
+        <div class="info-header">
+            <h2>
+                <i class="fas fa-info-circle"></i>
+                {{ unit.address }}
+            </h2>
+            <span class="housing-id">
+                <i class="fas fa-hashtag"></i>
+                ID: {{ unit.id }}
+            </span>
+        </div>
+        
+        <div class="info-body">
+            <div class="info-section">
+                <div class="section-title">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Адрес и характеристики
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Полный адрес</span>
+                    <span class="info-value address">{{ unit.address }}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Общая площадь</span>
+                    <span class="info-value">{{ unit.total_area }} м²</span>
+                </div>
+            </div>
+            
+            <div class="metadata-grid">
+                <div class="metadata-item">
+                    <div class="metadata-label">Дата регистрации</div>
+                    <div class="metadata-value">{{ unit.created_at|date:"d.m.Y" }}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Время регистрации</div>
+                    <div class="metadata-value">{{ unit.created_at|date:"H:i" }}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Последнее обновление</div>
+                    <div class="metadata-value">{{ unit.updated_at|date:"d.m.Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Информация о владельце -->
+    <div class="owner-card">
+        <div class="owner-header">
+            <h3>
+                <i class="fas fa-user"></i>
+                Владелец помещения
+            </h3>
+        </div>
+        <div class="owner-body">
+            {% if unit.owner %}
+                <a href="{% url 'profile' username=unit.owner.username %}" class="owner-link">
+                    <div class="owner-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="owner-info">
+                        <div class="owner-name">
+                            {{ unit.owner.profile.full_name|default:unit.owner.username }}
+                        </div>
+                        <div class="owner-details">
+                            <span class="owner-detail">
+                                <i class="fas fa-envelope"></i>
+                                {{ unit.owner.email }}
+                            </span>
+                            {% if unit.owner.profile.phone_number %}
+                            <span class="owner-detail">
+                                <i class="fas fa-phone"></i>
+                                {{ unit.owner.profile.phone_number }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color: #007bff;"></i>
+                </a>
+            {% else %}
+                <div class="empty-owner">
+                    <i class="fas fa-user-slash"></i>
+                    <span>Владелец не указан</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="action-buttons">
+        {% if is_superuser %}
+            <a href="{% url 'admin_panel:edit_housing' unit_id=unit.id %}" class="btn-primary">
+                <i class="fas fa-edit"></i>
+                Редактировать помещение
+            </a>
+        {% endif %}
+        <button onclick="goBack()" class="btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Вернуться назад
+        </button>
+    </div>
+</div>
+
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
 {% endblock %}

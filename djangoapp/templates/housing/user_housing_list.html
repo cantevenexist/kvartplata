@@ -1,54 +1,526 @@
 {% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Жилые помещения {{ profile_user.username }}{% endblock %}
+
 {% block content %}
-<h1>Жилые помещения пользователя {{ profile_user.username }}</h1>
-
-{% if is_staff %}
-    {% if is_superuser %}
-    <p style="color: gray;">Просмотр от имени администратора</p>
-    {% else %}
-    <p style="color: gray;">Просмотр от имени бухгалтера</p>
-    {% endif %}
-{% endif %}
-
-<hr>
-
-{% if housing_units %}
-    <p>Всего квартир: {{ count }}</p>
+<style>
+    .user-housing-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px;
+    }
     
-    <table border="1" cellpadding="8">
-        <tr>
-            <th>ID</th>
-            <th>Адрес</th>
-            <th>Площадь</th>
-            <th>Дата добавления</th>
-            <th></th>
-        </tr>
-        {% for unit in housing_units %}
-        <tr>
-            <td>{{ unit.id }}</td>
-            <td>{{ unit.address }}</td>
-            <td>{{ unit.total_area }} м²</td>
-            <td>{{ unit.created_at|date:"d.m.Y" }}</td>
-            <td>
-                <a href="{% url 'housing:housing_detail' unit_id=unit.id %}">Подробнее</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-{% else %}
-    <p>У пользователя нет зарегистрированных квартир</p>
-{% endif %}
-
-<hr>
-
-<p>
-    <script>
-        function goBack() {
-            window.history.back();
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .user-name {
+        color: #007bff;
+        font-weight: 600;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+    }
+    
+    /* Уведомление о режиме просмотра */
+    .view-mode-notice {
+        background: #f0f7ff;
+        border: 1px solid #cce5ff;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #004085;
+    }
+    
+    .view-mode-notice i {
+        font-size: 20px;
+        color: #007bff;
+    }
+    
+    .view-mode-notice span {
+        font-size: 14px;
+    }
+    
+    /* Карточка информации о пользователе */
+    .user-info-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .user-info-header {
+        padding: 16px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .user-info-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .user-info-header i {
+        color: #007bff;
+    }
+    
+    .user-info-body {
+        padding: 20px;
+    }
+    
+    .user-stats {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        background: #e7f3ff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #007bff;
+        font-size: 18px;
+    }
+    
+    .stat-content {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 13px;
+        color: #666;
+    }
+    
+    /* Карточка с квартирами */
+    .housing-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .housing-header {
+        padding: 20px 24px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .housing-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .housing-header i {
+        color: #28a745;
+    }
+    
+    .total-badge {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .total-badge i {
+        color: #007bff;
+    }
+    
+    /* Таблица */
+    .table-wrapper {
+        overflow-x: auto;
+        padding: 0 24px 24px 24px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px;
+    }
+    
+    th {
+        text-align: left;
+        padding: 16px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    td {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+    
+    tr:hover td {
+        background: #f8f9fa;
+    }
+    
+    .housing-id {
+        font-family: monospace;
+        background: #e9ecef;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: #495057;
+    }
+    
+    .housing-address {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .housing-area {
+        font-weight: 500;
+        color: #28a745;
+    }
+    
+    .housing-date {
+        color: #666;
+    }
+    
+    .btn-detail {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: #e7f3ff;
+        color: #007bff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    
+    .btn-detail:hover {
+        background: #d4e5ff;
+    }
+    
+    .btn-detail i {
+        font-size: 12px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+    
+    .empty-state .text-muted {
+        font-size: 14px;
+        color: #aaa;
+    }
+    
+    .profile-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        color: #333;
+        text-decoration: none;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+    
+    .profile-link:hover {
+        background: #f5f5f5;
+    }
+    
+    hr {
+        border: none;
+        border-top: 1px solid #e0e0e0;
+        margin: 24px 0;
+    }
+    
+    @media (max-width: 768px) {
+        .user-housing-container {
+            padding: 16px;
         }
-    </script>
-    <p>
-        <a href="#" onclick="goBack(); return false;">← Назад</a>
-    </p>
-</p>
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .user-stats {
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .housing-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        th, td {
+            padding: 12px;
+        }
+        
+        .btn-detail {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="user-housing-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-building" style="color: #28a745;"></i>
+            Жилые помещения 
+            <span class="user-name">{{ profile_user.username }}</span>
+        </h1>
+        <a href="#" onclick="goBack(); return false;" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Назад
+        </a>
+    </div>
+
+    {% if is_staff %}
+    <div class="view-mode-notice">
+        <i class="fas {% if is_superuser %}fa-crown{% else %}fa-eye{% endif %}"></i>
+        <span>
+            {% if is_superuser %}
+                Просмотр от имени администратора
+            {% else %}
+                Просмотр от имени бухгалтера
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- Информация о пользователе -->
+    <div class="user-info-card">
+        <div class="user-info-header">
+            <h2>
+                <i class="fas fa-user"></i>
+                Информация о владельце
+            </h2>
+            <a href="{% url 'profile' username=profile_user.username %}" class="profile-link">
+                <i class="fas fa-user-circle"></i>
+                Профиль пользователя
+            </a>
+        </div>
+        <div class="user-info-body">
+            <div class="user-stats">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ count }}</span>
+                        <span class="stat-label">Всего квартир</span>
+                    </div>
+                </div>
+                
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-arrows-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">
+                            {% with total=0 %}
+                                {% for unit in housing_units %}
+                                    {% with total=total|add:unit.total_area %}
+                                        {{ total|floatformat:2 }}
+                                    {% endwith %}
+                                {% endfor %}
+                            {% endwith %}
+                        </span>
+                        <span class="stat-label">Общая площадь (м²)</span>
+                    </div>
+                </div>
+                
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value">{{ profile_user.date_joined|date:"d.m.Y" }}</span>
+                        <span class="stat-label">Дата регистрации</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список квартир -->
+    <div class="housing-card">
+        <div class="housing-header">
+            <h3>
+                <i class="fas fa-list"></i>
+                Список жилых помещений
+            </h3>
+            <span class="total-badge">
+                <i class="fas fa-calculator"></i>
+                Всего: {{ count }}
+            </span>
+        </div>
+        
+        {% if housing_units %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Адрес</th>
+                        <th>Площадь</th>
+                        <th>Дата добавления</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for unit in housing_units %}
+                    <tr>
+                        <td>
+                            <span class="housing-id">#{{ unit.id }}</span>
+                        </td>
+                        <td>
+                            <span class="housing-address">{{ unit.address }}</span>
+                        </td>
+                        <td>
+                            <span class="housing-area">{{ unit.total_area }} м²</span>
+                        </td>
+                        <td>
+                            <span class="housing-date">{{ unit.created_at|date:"d.m.Y" }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'housing:housing_detail' unit_id=unit.id %}" class="btn-detail">
+                                <i class="fas fa-eye"></i>
+                                Подробнее
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if housing_units %}
+        <div style="padding: 16px 24px; border-top: 1px solid #e0e0e0; background: #f8f9fa; font-size: 13px; color: #666;">
+            <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+            Отображается {{ housing_units|length }} из {{ count }} помещений
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-home"></i>
+            <p>У пользователя нет зарегистрированных квартир</p>
+            <p class="text-muted">
+                Владелец пока не добавил ни одного жилого помещения
+            </p>
+            {% if is_superuser %}
+            <a href="{% url 'admin_panel:register_housing' %}" class="btn-primary" style="margin-top: 16px; display: inline-flex;">
+                <i class="fas fa-plus"></i>
+                Добавить помещение
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function goBack() {
+        window.history.back();
+    }
+</script>
 {% endblock %}

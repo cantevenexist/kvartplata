@@ -5,10 +5,289 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
     <link rel="stylesheet" href="{% static 'css/layout.css' %}">
     {% block head %}{% endblock %}
     <style>
+        /* Стили для шапки в стиле карточек тарифов */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Geologica', sans-serif;
+            margin: 0;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Шапка */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-left a {
+            color: #333;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .header-left a:hover {
+            background: #f5f5f5;
+        }
+        
+        .header-left i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Кнопки в шапке */
+        .header-btn {
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .header-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        .header-btn i {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        .header-btn:hover i {
+            color: #007bff;
+        }
+        
+        /* Кнопка уведомлений */
+        .notification-btn {
+            position: relative;
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #333;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #dc3545;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+        
+        /* Разделитель */
+        .divider {
+            width: 1px;
+            height: 24px;
+            background: #e0e0e0;
+            margin: 0 8px;
+        }
+        
+        /* Имя пользователя */
+        .username {
+            font-weight: 500;
+            color: #007bff;
+        }
+        
+        /* Панель уведомлений */
+        .notifications-preview {
+            position: fixed;
+            top: 70px;
+            right: 24px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+        }
+        
+        .notifications-header {
+            padding: 16px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+        }
+        
+        .notifications-header button {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .notifications-header button:hover {
+            text-decoration: underline;
+        }
+        
+        .notification-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .notification-unread {
+            background-color: #f0f7ff;
+            border-left: 3px solid #007bff;
+        }
+        
+        .notification-read {
+            opacity: 0.7;
+        }
+        
+        .notification-message {
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: 4px;
+            word-wrap: break-word;
+        }
+        
+        .notification-time {
+            font-size: 11px;
+            color: #999;
+        }
+        
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+        }
+        
+        .modal-header button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .modal-header button:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(80vh - 70px);
+        }
+        
+        /* Контейнер для контента */
+        .main-container {
+            position: fixed;
+            top: 60px; /* Высота шапки */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: #f5f5f5;
+        }
+        
+        .content-wrapper {
+            min-height: 100%;
+            width: 100%;
+        }
+        
         .notification-unread {
             background-color: #fff5f5 !important;
             border-left: 3px solid #ff4444;
@@ -37,87 +316,124 @@
         }
     </style>
 </head>
-<body style="font-family: Geologica; margin: 0;">
+<body>
     {% csrf_token %}
     
-    <div style="background: #e6e6e6; display: flex; justify-content: space-between; height: 50px;" class="layout_header">
-        <div>
-            <a href="/">main</a>
+    <!-- Шапка -->
+    <header class="header">
+        <div class="header-left">
+            <a href="/">
+                <i class="fas fa-home"></i>
+                Главная
+            </a>
         </div>
         
-        <div style="display: flex; gap: 15px;">
+        <div class="header-right">
             {% if user.is_authenticated %}
+                <!-- Уведомления -->
                 <div style="position: relative;">
-                    <button onclick="toggleNotifications()" style="background: none; border: none; cursor: pointer;">
-                        🔔{% if unread_notifications_count %}({{ unread_notifications_count }}){% endif %}
+                    <button class="notification-btn" onclick="toggleNotifications()">
+                        <i class="far fa-bell"></i>
+                        {% if unread_notifications_count %}
+                            <span class="notification-badge">{{ unread_notifications_count }}</span>
+                        {% endif %}
                     </button>
                 </div>
+                
+                <div class="divider"></div>
+                
+                <!-- Панель администратора/бухгалтера -->
                 {% if is_staff %}
                     {% if is_superuser %}
-                        <a href="/admin_panel/">admin_panel</a>
+                        <a href="/admin_panel/" class="header-btn">
+                            <i class="fas fa-cog"></i>
+                            Админ панель
+                        </a>
                     {% else %}
-                        <a href="/buh_panel/">buh_panel</a>
-                        <a href="/profile/">profile</a>
+                        <a href="/buh_panel/" class="header-btn">
+                            <i class="fas fa-calculator"></i>
+                            Бухгалтерия
+                        </a>
                     {% endif %}
-                {% else %}
-                    <a href="/profile/">{{ user.username }}</a>
                 {% endif %}
-                <a href="/account/logout/">logout</a>
+                
+                <!-- Профиль -->
+                {% if is_staff and not is_superuser %}
+                <a href="/profile/" class="header-btn">
+                    <i class="far fa-user"></i>
+                        <span class="username">{{ user.username }}</span>
+                </a>
+                {% endif %}
+
+                <!-- Выход -->
+                <a href="/account/logout/" class="header-btn" style="color: #dc3545;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Выйти
+                </a>
             {% else %}
-                <a href="/account/login/">login</a>
+                <!-- Вход для неавторизованных -->
+                <a href="/account/login/" class="header-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Войти
+                </a>
             {% endif %}
         </div>
-    </div>
+    </header>
 
-    <!-- Уведомления -->
-    <div id="notificationsPreview" style="display: none; position: fixed; top: 50px; right: 0; background: white; border: 1px solid #ccc; width: 250px; max-height: 300px; overflow-y: auto; z-index: 1000;">
-        <div style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">
-            Уведомления
+    <!-- Панель уведомлений -->
+    <div id="notificationsPreview" class="notifications-preview">
+        <div class="notifications-header">
+            <span>Уведомления</span>
             {% if notifications.count > 5 %}
-            <button onclick="showAllNotifications()" style="float: right; background: none; border: none; cursor: pointer;">Все</button>
+            <button onclick="showAllNotifications()">Все</button>
             {% endif %}
         </div>
         
         {% for notification in recent_notifications %}
             <div onclick="openNotification({{ notification.id }})" 
-                    class="notification-item {% if not notification.is_read %}notification-unread{% else %}notification-read{% endif %}">
-                <div style="text-indent: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">{{ notification.message }}</div>
+                 class="notification-item {% if not notification.is_read %}notification-unread{% else %}notification-read{% endif %}">
+                <div class="notification-message">{{ notification.message }}</div>
                 <div class="notification-time" data-timestamp="{{ notification.created_at|date:'c' }}">
                     {{ notification.created_at|date:"d.m.Y H:i" }}
                 </div>
             </div>
         {% empty %}
-            <div style="padding: 20px; text-align: center; color: #666;">Нет уведомлений</div>
+            <div style="padding: 40px 20px; text-align: center; color: #999;">
+                <i class="far fa-bell" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <p style="margin: 0;">Нет уведомлений</p>
+            </div>
         {% endfor %}
     </div>
     
-    <!-- Модальные окна -->
-    <div id="allNotificationsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 0; border-radius: 5px;">
-            <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-weight: bold;">Все уведомления</div>
-                <button onclick="closeAllNotifications()" style="background: none; border: none; cursor: pointer; font-size: 18px;">×</button>
+    <!-- Модальное окно всех уведомлений -->
+    <div id="allNotificationsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Все уведомления</span>
+                <button onclick="closeAllNotifications()">×</button>
             </div>
-            <div id="allNotificationsList" style="max-height: 400px; overflow-y: auto;"></div>
+            <div id="allNotificationsList" class="modal-body"></div>
         </div>
     </div>
 
-    <div id="notificationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="background: white; width: 90%; max-width: 400px; margin: 50px auto; padding: 0; border-radius: 5px;">
-            <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-weight: bold;">Уведомление</div>
-                <button onclick="closeNotification()" style="background: none; border: none; cursor: pointer; font-size: 18px;">×</button>
+    <!-- Модальное окно уведомления -->
+    <div id="notificationModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <span>Уведомление</span>
+                <button onclick="closeNotification()">×</button>
             </div>
-            <div style="padding: 20px;">
-                <div id="notificationModalContent" style="text-indent: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;"></div>
-                <div id="notificationModalTime" style="margin-top: 15px; font-size: 12px; color: #666; text-align: right;"></div>
-                <div id="notificationModalUrl" style="margin-top: 15px; text-align: center;"></div>
+            <div class="modal-body">
+                <div id="notificationModalContent" style="line-height: 1.5; margin-bottom: 20px;"></div>
+                <div id="notificationModalTime" style="font-size: 12px; color: #999; text-align: right; margin-bottom: 15px;"></div>
+                <div id="notificationModalUrl" style="text-align: center;"></div>
             </div>
         </div>
     </div>
 
-    <div class="scrollable-container">
-        <div class="layout_central_block">
+    <!-- Основной контент с вертикальным скроллом -->
+    <div class="main-container">
+        <div class="content-wrapper">
             {% block content %}
             {% endblock %}
         </div>
@@ -129,44 +445,35 @@
             if (!dateString) return '';
             
             try {
-                // Пытаемся разобрать дату в ISO формате или других форматах
                 let date;
                 
                 if (dateString.includes('T')) {
-                    // ISO формат с 'T'
                     date = new Date(dateString);
                 } else if (dateString.includes(' ')) {
-                    // Формат "d.m.Y H:i" или подобный
                     const parts = dateString.split(' ');
                     const dateParts = parts[0].split('.');
                     const timeParts = parts[1].split(':');
                     
                     if (dateParts.length === 3 && timeParts.length >= 2) {
-                        // d.m.Y H:i
                         date = new Date(
-                            parseInt(dateParts[2]), // год
-                            parseInt(dateParts[1]) - 1, // месяц (0-based)
-                            parseInt(dateParts[0]), // день
-                            parseInt(timeParts[0]), // часы
-                            parseInt(timeParts[1]), // минуты
-                            timeParts[2] ? parseInt(timeParts[2]) : 0 // секунды
+                            parseInt(dateParts[2]),
+                            parseInt(dateParts[1]) - 1,
+                            parseInt(dateParts[0]),
+                            parseInt(timeParts[0]),
+                            parseInt(timeParts[1]),
+                            timeParts[2] ? parseInt(timeParts[2]) : 0
                         );
                     } else {
-                        // Пробуем стандартный разбор
                         date = new Date(dateString);
                     }
                 } else {
-                    // Пробуем стандартный разбор
                     date = new Date(dateString);
                 }
                 
-                // Проверяем, что дата валидна
                 if (isNaN(date.getTime())) {
-                    console.warn('Invalid date:', dateString);
                     return dateString;
                 }
                 
-                // Форматируем в локальное время
                 const day = String(date.getDate()).padStart(2, '0');
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const year = date.getFullYear();
@@ -175,14 +482,11 @@
                 
                 return `${day}.${month}.${year} ${hours}:${minutes}`;
             } catch (error) {
-                console.error('Error formatting date:', error, dateString);
                 return dateString;
             }
         }
         
-        // Обновляем все временные метки на странице при загрузке
         function updateAllLocalTimes() {
-            // В превью уведомлений
             document.querySelectorAll('.notification-time').forEach(element => {
                 const timestamp = element.getAttribute('data-timestamp');
                 if (timestamp) {
@@ -201,22 +505,18 @@
         
         function showAllNotifications() {
             document.getElementById('notificationsPreview').style.display = 'none';
-            document.getElementById('allNotificationsModal').style.display = 'block';
+            document.getElementById('allNotificationsModal').classList.add('active');
             loadAllNotifications();
         }
         
         function closeAllNotifications() {
-            document.getElementById('allNotificationsModal').style.display = 'none';
+            document.getElementById('allNotificationsModal').classList.remove('active');
         }
         
         function openNotification(notificationId) {
-            // Сразу обновляем внешний вид для мгновенной обратной связи
             updateNotificationAppearance(notificationId);
-            
-            // Отмечаем как прочитанное на сервере
             markNotificationAsRead(notificationId);
             
-            // Загружаем и показываем содержимое уведомления
             fetch(`/notifications/${notificationId}/`, {
                 headers: {'X-Requested-With': 'XMLHttpRequest'}
             })
@@ -225,7 +525,6 @@
                 if (data.success) {
                     document.getElementById('notificationModalContent').textContent = data.notification.message;
                     
-                    // Форматируем время в локальное
                     const localTime = formatLocalDateTime(data.notification.created_at);
                     document.getElementById('notificationModalTime').textContent = localTime;
                     
@@ -236,16 +535,13 @@
                         urlContainer.innerHTML = '';
                     }
                     
-                    document.getElementById('notificationModal').style.display = 'block';
+                    document.getElementById('notificationModal').classList.add('active');
                 }
-            })
-            .catch(error => {
-                console.error('Error loading notification:', error);
             });
         }
         
         function closeNotification() {
-            document.getElementById('notificationModal').style.display = 'none';
+            document.getElementById('notificationModal').classList.remove('active');
         }
         
         function loadAllNotifications() {
@@ -258,27 +554,24 @@
                 container.innerHTML = '';
                 
                 if (data.notifications.length === 0) {
-                    container.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">Нет уведомлений</div>';
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Нет уведомлений</div>';
                     return;
                 }
                 
                 data.notifications.forEach(notification => {
                     const div = document.createElement('div');
                     div.className = `notification-item ${notification.is_read ? 'notification-read' : 'notification-unread'}`;
-                    div.style=`text-indent: 0; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;`;
                     div.setAttribute('onclick', `openNotification(${notification.id})`);
+                    div.setAttribute('style', 'padding: 12px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer;');
                     
-                    // Форматируем время в локальное
                     const localTime = formatLocalDateTime(notification.created_at);
                     
-                    div.innerHTML = `<div>${notification.message}</div><div class="notification-time">${localTime}</div>`;
+                    div.innerHTML = `
+                        <div style="font-size: 13px; margin-bottom: 4px;">${notification.message}</div>
+                        <div style="font-size: 11px; color: #999;">${localTime}</div>
+                    `;
                     container.appendChild(div);
                 });
-            })
-            .catch(error => {
-                console.error('Error loading all notifications:', error);
-                const container = document.getElementById('allNotificationsList');
-                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">Ошибка загрузки уведомлений</div>';
             });
         }
         
@@ -292,32 +585,21 @@
                 body: formData,
                 headers: {'X-Requested-With': 'XMLHttpRequest'}
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
+            .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    // Обновляем счетчик непрочитанных
                     updateUnreadCount();
                 }
-            })
-            .catch(error => {
-                console.error('Error marking notification as read:', error);
             });
         }
         
         function updateNotificationAppearance(notificationId) {
-            // Обновляем в превью
             const previewNotifications = document.querySelectorAll(`#notificationsPreview [onclick="openNotification(${notificationId})"]`);
             previewNotifications.forEach(element => {
                 element.classList.remove('notification-unread');
                 element.classList.add('notification-read');
             });
             
-            // Обновляем в полном списке
             const allNotifications = document.querySelectorAll(`#allNotificationsList [onclick="openNotification(${notificationId})"]`);
             allNotifications.forEach(element => {
                 element.classList.remove('notification-unread');
@@ -326,17 +608,13 @@
         }
         
         function updateUnreadCount() {
-            const button = document.querySelector('button[onclick="toggleNotifications()"]');
-            if (button) {
-                const currentText = button.textContent;
-                const match = currentText.match(/🔔\((\d+)\)/);
-                if (match) {
-                    const currentCount = parseInt(match[1]) - 1;
-                    if (currentCount > 0) {
-                        button.textContent = `🔔(${currentCount})`;
-                    } else {
-                        button.textContent = '🔔';
-                    }
+            const badge = document.querySelector('.notification-badge');
+            if (badge) {
+                const currentCount = parseInt(badge.textContent) - 1;
+                if (currentCount > 0) {
+                    badge.textContent = currentCount;
+                } else {
+                    badge.remove();
                 }
             }
         }
@@ -344,22 +622,18 @@
         // Закрытие при клике вне области
         document.addEventListener('click', function(e) {
             const preview = document.getElementById('notificationsPreview');
-            const button = document.querySelector('button[onclick="toggleNotifications()"]');
+            const notificationBtn = document.querySelector('.notification-btn');
             
-            if (preview && button && !button.contains(e.target) && !preview.contains(e.target)) {
+            if (preview && notificationBtn && !notificationBtn.contains(e.target) && !preview.contains(e.target)) {
                 preview.style.display = 'none';
             }
             
             // Закрытие модальных окон при клике на фон
-            if (e.target.id === 'allNotificationsModal') {
-                closeAllNotifications();
-            }
-            if (e.target.id === 'notificationModal') {
-                closeNotification();
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
             }
         });
         
-        // Обновляем время при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             updateAllLocalTimes();
         });

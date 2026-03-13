@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'user_profile',
     'admin_panel',
     'housing',
+    'payment_service',
     # allauth
     'allauth',
     'allauth.account',

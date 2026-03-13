@@ -1,0 +1,481 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}{% if tariff %}Редактировать{% else %}Создать{% endif %} тариф{% endblock %}
+
+{% block content %}
+<style>
+    .tariff-form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+    }
+    
+    /* Карточка формы */
+    .form-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .form-header {
+        padding: 20px 24px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .form-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .form-header i {
+        color: #007bff;
+    }
+    
+    .form-body {
+        padding: 24px;
+    }
+    
+    .form-group {
+        margin-bottom: 24px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .required:after {
+        content: "*";
+        color: #dc3545;
+        margin-left: 4px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    select.form-control {
+        background-color: white;
+        cursor: pointer;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+    
+    .form-text {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .form-text small {
+        font-size: 12px;
+    }
+    
+    /* Информация о статусе */
+    .status-info {
+        margin-top: 8px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .status-info.warning {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+    }
+    
+    .status-info.info {
+        background: #e7f3ff;
+        border: 1px solid #cce5ff;
+        color: #004085;
+    }
+    
+    .status-info i {
+        font-size: 16px;
+    }
+    
+    /* Предупреждение для архивного тарифа */
+    .archive-warning {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .archive-warning i {
+        font-size: 24px;
+        color: #6c757d;
+    }
+    
+    .archive-warning-text {
+        flex: 1;
+        font-size: 14px;
+        color: #495057;
+    }
+    
+    .archive-warning-text strong {
+        color: #dc3545;
+    }
+    
+    /* Кнопки */
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #f5f5f5;
+    }
+    
+    .messages {
+        margin-bottom: 24px;
+    }
+    
+    .message {
+        padding: 14px 18px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .message.success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .message.error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    .message.warning {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+    }
+    
+    .message.info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+    
+    @media (max-width: 768px) {
+        .tariff-form-container {
+            padding: 16px;
+        }
+        
+        .form-body {
+            padding: 16px;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="tariff-form-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas {% if tariff %}fa-edit{% else %}fa-plus-circle{% endif %}" style="color: #007bff;"></i>
+            {% if tariff %}Редактировать тариф{% else %}Создать новый тариф{% endif %}
+        </h1>
+        <a href="{% url 'payment_service:tariff_list' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Вернуться к списку
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                <i class="fas 
+                    {% if message.tags == 'success' %}fa-check-circle
+                    {% elif message.tags == 'error' %}fa-exclamation-circle
+                    {% elif message.tags == 'warning' %}fa-exclamation-triangle
+                    {% else %}fa-info-circle{% endif %}">
+                </i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="form-card">
+        <div class="form-header">
+            <h2>
+                <i class="fas fa-chart-line"></i>
+                {% if tariff %}Редактирование тарифа{% else %}Новый тариф{% endif %}
+            </h2>
+        </div>
+        
+        <div class="form-body">
+            <form method="post" id="tariffForm">
+                {% csrf_token %}
+                
+                <!-- Название тарифа -->
+                <div class="form-group">
+                    <label class="required">Название тарифа</label>
+                    <input type="text" 
+                           name="name" 
+                           class="form-control" 
+                           value="{% if tariff %}{{ tariff.name }}{% elif form_data.name %}{{ form_data.name }}{% endif %}"
+                           placeholder="Введите название тарифа"
+                           required>
+                    <div class="form-text">Например: "Электроэнергия", "Холодная вода", "Отопление"</div>
+                </div>
+                
+                <!-- Ставка и единица измерения -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required">Ставка за единицу</label>
+                        <input type="number" 
+                               name="rate_per_unit" 
+                               class="form-control" 
+                               step="0.0001" 
+                               min="0.0001"
+                               value="{% if tariff %}{{ tariff.rate_per_unit|stringformat:'.4f' }}{% elif form_data.rate_per_unit %}{{ form_data.rate_per_unit }}{% endif %}"                               placeholder="0.0000"
+                               required>
+                        <div class="form-text">Сумма в рублях</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="required">Единица измерения</label>
+                        <select name="unit" class="form-control" required>
+                            <option value="">Выберите единицу измерения</option>
+                            {% for value, label in unit_choices %}
+                            <option value="{{ value }}" 
+                                    {% if tariff and tariff.unit == value %}selected{% endif %}
+                                    {% if form_data.unit == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Статус и дата окончания -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Статус</label>
+                        <select name="status" class="form-control" required>
+                            <option value="active" {% if current_status == 'active' %}selected{% endif %}>Активен</option>
+                            <option value="archived" {% if current_status == 'archived' %}selected{% endif %}>В архиве</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Действителен до</label>
+                        <input type="date" 
+                               name="valid_to" 
+                               class="form-control"
+                               value="{% if tariff and tariff.valid_to %}{{ tariff.valid_to|date:'Y-m-d' }}{% elif form_data.valid_to %}{{ form_data.valid_to }}{% endif %}">
+                        <div class="form-text">Оставьте пустым для бессрочного тарифа</div>
+                    </div>
+                </div>
+                
+                <!-- Информационные сообщения -->
+                {% if tariff %}
+                    {% if not tariff.is_active %}
+                    <div class="archive-warning">
+                        <i class="fas fa-archive"></i>
+                        <div class="archive-warning-text">
+                            <strong>Тариф находится в архиве</strong><br>
+                            После сохранения он останется в архиве.
+                            Дата окончания: {% if tariff.valid_to %}{{ tariff.valid_to|date:"d.m.Y" }}{% else %}бессрочно{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if tariff.is_active and tariff.valid_to and tariff.valid_to < now %}
+                    <div class="status-info warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>
+                            <strong>Внимание!</strong> Тариф активен, но дата окончания уже прошла ({{ tariff.valid_to|date:"d.m.Y" }}).
+                            Рекомендуется обновить дату или отправить в архив.
+                        </span>
+                    </div>
+                    {% endif %}
+                {% endif %}
+                
+                <!-- Кнопки -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i>
+                        {% if tariff %}Сохранить изменения{% else %}Создать тариф{% endif %}
+                    </button>
+                    <a href="{% url 'payment_service:tariff_list' %}" class="btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Дополнительная валидация
+    document.getElementById('tariffForm').addEventListener('submit', function(e) {
+        const name = document.querySelector('input[name="name"]').value.trim();
+        const rate = document.querySelector('input[name="rate_per_unit"]').value;
+        const unit = document.querySelector('select[name="unit"]').value;
+        
+        if (!name) {
+            e.preventDefault();
+            alert('Пожалуйста, введите название тарифа');
+            return;
+        }
+        
+        if (!rate || parseFloat(rate) <= 0) {
+            e.preventDefault();
+            alert('Пожалуйста, введите корректную ставку (больше 0)');
+            return;
+        }
+        
+        if (!unit) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите единицу измерения');
+            return;
+        }
+    });
+    
+    // Подсказка при выборе архивного статуса
+    document.querySelector('select[name="status"]').addEventListener('change', function(e) {
+        const validToField = document.querySelector('input[name="valid_to"]');
+        const currentDate = new Date().toISOString().split('T')[0];
+        
+        if (this.value === 'archived' && !validToField.value) {
+            if (confirm('Тариф будет отправлен в архив. Установить дату окончания на сегодня?')) {
+                validToField.value = currentDate;
+            }
+        }
+    });
+</script>
+{% endblock %}

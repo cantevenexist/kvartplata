@@ -1,113 +1,672 @@
 {% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Поиск пользователей{% endblock %}
+
 {% block content %}
-<h1>Панель администратора</h1>
-<h1>Поиск пользователей</h1>
-
-{% if messages %}
-    {% for message in messages %}
-        <p style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
-            {{ message }}
-        </p>
-    {% endfor %}
-{% endif %}
-
-<form method="post">
-    {% csrf_token %}
-    <p>
-        <label>Поиск по имени, телефону или паспорту:</label><br>
-        <input type="text" name="search_query" value="{{ query }}" 
-                placeholder="Введите текст для поиска (оставьте пустым для показа всех пользователей)" 
-                style="width: 400px; padding: 5px;">
-    </p>
+<style>
+    .search-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+    }
     
-    <p>
-        <label>Тип пользователя:</label><br>
-        <select name="user_type" style="padding: 5px; width: 200px;">
-            <option value="all" {% if user_type == 'all' %}selected{% endif %}>Все пользователи</option>
-            <option value="staff" {% if user_type == 'staff' %}selected{% endif %}>👔 Только бухгалтеры</option>
-            <option value="owners" {% if user_type == 'owners' %}selected{% endif %}>👤 Только владельцы</option>
-        </select>
-    </p>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
     
-    <p>
-        <button type="submit">🔍 Найти</button>
-        <button type="button" onclick="clearSearch()">✖ Очистить</button>
-    </p>
-</form>
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+    }
+    
+    /* Карточка поиска */
+    .search-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .search-header {
+        padding: 20px 24px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .search-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .search-header i {
+        color: #007bff;
+    }
+    
+    .search-body {
+        padding: 24px;
+    }
+    
+    .search-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 0;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    .form-select {
+        width: 100%;
+        max-width: 300px;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+    }
+    
+    .form-select:focus {
+        outline: none;
+        border-color: #007bff;
+    }
+    
+    .form-text {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .search-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #f5f5f5;
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-danger:hover {
+        background: #c82333;
+    }
+    
+    /* Результаты поиска */
+    .results-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .results-header {
+        padding: 20px 24px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .results-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .results-title h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .results-badge {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .filter-badge {
+        background: #e9ecef;
+        color: #495057;
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .filter-badge.blue {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .filter-badge.green {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    /* Таблица */
+    .table-wrapper {
+        overflow-x: auto;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    th {
+        text-align: left;
+        padding: 16px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    td {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+    }
+    
+    tr:hover td {
+        background: #f8f9fa;
+    }
+    
+    .user-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    
+    .status-buh {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .status-owner {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .user-name {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .user-username {
+        font-size: 12px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 13px;
+        text-decoration: none;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    
+    .action-link.view {
+        background: #e7f3ff;
+        color: #007bff;
+    }
+    
+    .action-link.view:hover {
+        background: #d4e5ff;
+    }
+    
+    .action-link.edit {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .action-link.edit:hover {
+        background: #ffe69c;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+    
+    .empty-state .text-muted {
+        font-size: 14px;
+        color: #aaa;
+    }
+    
+    .messages {
+        margin-bottom: 24px;
+    }
+    
+    .message {
+        padding: 14px 18px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .message.success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .message.error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    hr {
+        border: none;
+        border-top: 1px solid #e0e0e0;
+        margin: 24px 0;
+    }
+    
+    @media (max-width: 768px) {
+        .search-container {
+            padding: 16px;
+        }
+        
+        .search-body {
+            padding: 16px;
+        }
+        
+        .search-actions {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary, .btn-danger {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .results-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .action-link {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 12px;
+        }
+    }
+</style>
+
+<div class="search-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-search" style="color: #007bff; margin-right: 12px;"></i>
+            Поиск пользователей
+        </h1>
+        <a href="#" onclick="goBack(); return false;" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Назад в панель
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                <i class="fas 
+                    {% if message.tags == 'success' %}fa-check-circle
+                    {% elif message.tags == 'error' %}fa-exclamation-circle
+                    {% else %}fa-info-circle{% endif %}">
+                </i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="search-card">
+        <div class="search-header">
+            <h2>
+                <i class="fas fa-filter"></i>
+                Параметры поиска
+            </h2>
+        </div>
+        <div class="search-body">
+            <form method="post" class="search-form">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-keyboard" style="margin-right: 6px; color: #666;"></i>
+                        Поиск по имени, телефону или паспорту
+                    </label>
+                    <input type="text" 
+                           name="search_query" 
+                           value="{{ query }}" 
+                           class="form-control"
+                           placeholder="Введите текст для поиска (оставьте пустым для показа всех пользователей)">
+                    <div class="form-text">
+                        Можно искать по имени пользователя, email, номеру телефона или паспорта
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-user-tag" style="margin-right: 6px; color: #666;"></i>
+                        Тип пользователя
+                    </label>
+                    <select name="user_type" class="form-select">
+                        <option value="all" {% if user_type == 'all' %}selected{% endif %}>👥 Все пользователи</option>
+                        <option value="staff" {% if user_type == 'staff' %}selected{% endif %}>👔 Только бухгалтеры</option>
+                        <option value="owners" {% if user_type == 'owners' %}selected{% endif %}>👤 Только владельцы</option>
+                    </select>
+                </div>
+                
+                <div class="search-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-search"></i>
+                        Найти
+                    </button>
+                    <button type="button" onclick="clearSearch()" class="btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Очистить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="results-card">
+        <div class="results-header">
+            <div class="results-title">
+                <h3>
+                    {% if showing_all %}
+                        <i class="fas fa-users" style="margin-right: 8px; color: #007bff;"></i>
+                        Все пользователи
+                    {% else %}
+                        <i class="fas fa-search" style="margin-right: 8px; color: #007bff;"></i>
+                        Результаты поиска "{{ query }}"
+                    {% endif %}
+                </h3>
+                
+                <span class="results-badge">
+                    <i class="fas fa-user"></i>
+                    Найдено: {{ total_count }}
+                </span>
+                
+                {% if user_type == 'staff' %}
+                    <span class="filter-badge blue">
+                        <i class="fas fa-user-tie"></i>
+                        Только бухгалтеры
+                    </span>
+                {% elif user_type == 'owners' %}
+                    <span class="filter-badge green">
+                        <i class="fas fa-user"></i>
+                        Только владельцы
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if results %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Статус</th>
+                        <th>Пользователь</th>
+                        <th>Email</th>
+                        <th>Телефон</th>
+                        <th>Паспорт</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in results %}
+                    <tr>
+                        <td style="font-family: monospace;">#{{ user.id }}</td>
+                        <td>
+                            {% if user.is_staff %}
+                                <span class="user-status status-buh">
+                                    <i class="fas fa-user-tie"></i>
+                                    Бухгалтер
+                                </span>
+                            {% else %}
+                                <span class="user-status status-owner">
+                                    <i class="fas fa-user"></i>
+                                    Владелец
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="user-info">
+                                <span class="user-name">{{ user.full_name|default:"—" }}</span>
+                                <span class="user-username">
+                                    <i class="fas fa-at" style="font-size: 10px;"></i>
+                                    {{ user.username }}
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="mailto:{{ user.email }}" style="color: #007bff; text-decoration: none;">
+                                {{ user.email }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if user.phone %}
+                                {{ user.phone }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.passport %}
+                                <span style="font-family: monospace;">{{ user.passport }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{% url 'profile' username=user.username %}" class="action-link view">
+                                    <i class="fas fa-eye"></i>
+                                    Просмотр
+                                </a>
+                                <a href="{% url 'admin_panel:edit_profile' user_id=user.id %}" class="action-link edit">
+                                    <i class="fas fa-edit"></i>
+                                    Редактировать
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <p>Пользователи не найдены</p>
+            <p class="text-muted">
+                {% if query %}
+                    Попробуйте изменить параметры поиска
+                {% else %}
+                    Начните поиск, введя текст в поле выше
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 
 <script>
     function goBack() {
         window.history.back();
     }
-</script>
-<p>
-    <a href="#" onclick="goBack(); return false;">← Назад</a>
-</p>
-<hr>
-
-<h3>
-    {% if showing_all %}
-        Все пользователи ({{ total_count }})
-        {% if user_type == 'staff' %}
-            <span style="color: blue;">(только бухгалтеры)</span>
-        {% elif user_type == 'owners' %}
-            <span style="color: green;">(только владельцы)</span>
-        {% endif %}
-    {% else %}
-        Результаты поиска для "{{ query }}"
-        {% if user_type == 'staff' %}
-            <span style="color: blue;">(только бухгалтеры)</span>
-        {% elif user_type == 'owners' %}
-            <span style="color: green;">(только владельцы)</span>
-        {% endif %}
-        — найдено: {{ total_count }}
-    {% endif %}
-</h3>
-
-{% if results %}
-    <table border="1" cellpadding="8">
-        <tr>
-            <th>ID</th>
-            <th>Статус</th>
-            <th>Имя пользователя</th>
-            <th>Действие</th>
-            <th>Email</th>
-            <th>Полное имя</th>
-            <th>Телефон</th>
-            <th>Паспорт</th>
-        </tr>
-        {% for user in results %}
-        <tr>
-            <td>{{ user.id }}</td>
-            <td>
-                {% if user.is_staff %}
-                    👔 Бухгалтер
-                {% else %}
-                    👤 Владелец
-                {% endif %}
-            </td>
-            <td>{{ user.username }}
-                <a href="{% url 'profile' username=user.username %}">
-                    👀 Просмотр
-                </a>
-            </td>
-            <td>
-                <a href="{% url 'admin_panel:edit_profile' user_id=user.id %}">
-                    ✏️ Редактировать
-                </a>
-            </td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.full_name }}</td>
-            <td>{{ user.phone }}</td>
-            <td>{{ user.passport }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-{% else %}
-    <p>Пользователи не найдены</p>
-{% endif %}
-
-<script>
+    
     function clearSearch() {
         document.querySelector('input[name="search_query"]').value = '';
         document.querySelector('form').submit();

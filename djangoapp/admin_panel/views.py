@@ -35,14 +35,78 @@ class RegisterUserView(LoginRequiredMixin, AdminRequiredMixin, View):
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
         
-        # Проверки
+        # Проверка паролей
+        if password != confirm_password:
+            messages.error(request, 'Пароли не совпадают')
+            # Сохраняем введенные данные для возврата в форму
+            request.session['form_data'] = {
+                'user_type': user_type,
+                'username': username,
+                'email': email,
+                'full_name': request.POST.get('full_name'),
+                'birth_date': request.POST.get('birth_date'),
+                'phone_number': request.POST.get('phone_number'),
+                'passport_number': request.POST.get('passport_number'),
+                'passport_issued_by': request.POST.get('passport_issued_by'),
+                'passport_issued_date': request.POST.get('passport_issued_date'),
+                'registration_address': request.POST.get('registration_address'),
+                'actual_address': request.POST.get('actual_address'),
+            }
+            return redirect('admin_panel:register_user')
+        
+        # Проверка длины пароля
+        if len(password) < 8:
+            messages.error(request, 'Пароль должен содержать минимум 8 символов')
+            request.session['form_data'] = {
+                'user_type': user_type,
+                'username': username,
+                'email': email,
+                'full_name': request.POST.get('full_name'),
+                'birth_date': request.POST.get('birth_date'),
+                'phone_number': request.POST.get('phone_number'),
+                'passport_number': request.POST.get('passport_number'),
+                'passport_issued_by': request.POST.get('passport_issued_by'),
+                'passport_issued_date': request.POST.get('passport_issued_date'),
+                'registration_address': request.POST.get('registration_address'),
+                'actual_address': request.POST.get('actual_address'),
+            }
+            return redirect('admin_panel:register_user')
+        
+        # Проверки на существование пользователя
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Пользователь с таким именем уже существует')
+            request.session['form_data'] = {
+                'user_type': user_type,
+                'username': username,
+                'email': email,
+                'full_name': request.POST.get('full_name'),
+                'birth_date': request.POST.get('birth_date'),
+                'phone_number': request.POST.get('phone_number'),
+                'passport_number': request.POST.get('passport_number'),
+                'passport_issued_by': request.POST.get('passport_issued_by'),
+                'passport_issued_date': request.POST.get('passport_issued_date'),
+                'registration_address': request.POST.get('registration_address'),
+                'actual_address': request.POST.get('actual_address'),
+            }
             return redirect('admin_panel:register_user')
         
         if User.objects.filter(email=email).exists():
             messages.error(request, 'Пользователь с таким email уже существует')
+            request.session['form_data'] = {
+                'user_type': user_type,
+                'username': username,
+                'email': email,
+                'full_name': request.POST.get('full_name'),
+                'birth_date': request.POST.get('birth_date'),
+                'phone_number': request.POST.get('phone_number'),
+                'passport_number': request.POST.get('passport_number'),
+                'passport_issued_by': request.POST.get('passport_issued_by'),
+                'passport_issued_date': request.POST.get('passport_issued_date'),
+                'registration_address': request.POST.get('registration_address'),
+                'actual_address': request.POST.get('actual_address'),
+            }
             return redirect('admin_panel:register_user')
         
         # Создание пользователя
@@ -69,6 +133,10 @@ class RegisterUserView(LoginRequiredMixin, AdminRequiredMixin, View):
             messages.success(request, f'Владелец квартиры {username} успешно создан')
         else:
             messages.success(request, f'Бухгалтер {username} успешно создан')
+        
+        # Очищаем сохраненные данные из сессии
+        if 'form_data' in request.session:
+            del request.session['form_data']
         
         return redirect('admin_panel:admin_panel')
 
@@ -268,12 +336,33 @@ class EditProfileView(LoginRequiredMixin, AdminRequiredMixin, View):
         user = get_object_or_404(User, id=user_id)
         profile = get_object_or_404(UserProfile, user=user)
         
+        # Проверяем, не является ли это запросом на смену пароля
+        if 'change_password' in request.POST:
+            new_password = request.POST.get('new_password')
+            confirm_password = request.POST.get('confirm_password')
+            
+            if new_password and confirm_password:
+                if new_password == confirm_password:
+                    if len(new_password) >= 8:
+                        user.set_password(new_password)
+                        user.save()
+                        messages.success(request, f'Пароль для пользователя {user.username} успешно изменен')
+                    else:
+                        messages.error(request, 'Пароль должен содержать минимум 8 символов')
+                else:
+                    messages.error(request, 'Пароли не совпадают')
+            else:
+                messages.error(request, 'Заполните все поля пароля')
+            
+            return redirect('admin_panel:edit_profile', user_id=user.id)
+        
+        # Обычное редактирование профиля
         form = UserProfileForm(request.POST, instance=profile)
         
         if form.is_valid():
             form.save()
             messages.success(request, f'Профиль пользователя {user.username} успешно обновлен')
-            return redirect('admin_panel:search_housing')
+            return redirect('profile', username=user.username)
         
         context = {
             'form': form,

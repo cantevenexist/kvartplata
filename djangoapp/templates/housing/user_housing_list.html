@@ -462,6 +462,7 @@
                         <th>ID</th>
                         <th>Адрес</th>
                         <th>Площадь</th>
+                        <th>Баланс</th>
                         <th>Дата добавления</th>
                         <th>Действие</th>
                     </tr>
@@ -477,6 +478,9 @@
                         </td>
                         <td>
                             <span class="housing-area">{{ unit.total_area }} м²</span>
+                        </td>
+                        <td>
+                            <span>{{ unit.prepayment }} ₽</span>
                         </td>
                         <td>
                             <span class="housing-date">{{ unit.created_at|date:"d.m.Y" }}</span>

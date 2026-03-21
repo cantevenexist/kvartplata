@@ -1,0 +1,144 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Список начислений</h3>
+            <a href="{% url 'payment_service:charge_create' %}" class="btn btn-success btn-sm">
+                + Новое начисление
+            </a>
+        </div>
+        
+        <div class="card-body">
+            <!-- Поиск -->
+            <form method="get" class="mb-3">
+                <div class="input-group" style="max-width: 400px;">
+                    <input type="text" name="search" class="form-control" value="{{ search_query }}" 
+                           placeholder="Поиск по адресу или владельцу">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">Найти</button>
+                        {% if search_query %}
+                            <a href="{% url 'payment_service:charge_list' %}" class="btn btn-secondary">Сброс</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+
+            <!-- Таблица начислений -->
+            <table class="table table-bordered table-striped table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Адрес</th>
+                        <th>Владелец</th>
+                        <th>Аванс</th>
+                        <th>Тариф</th>
+                        <th>Период</th>
+                        <th>Начислено</th>
+                        <th>Оплачено</th>
+                        <th>Остаток</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for charge in charges %}
+                    <tr>
+                        <td>{{ charge.housing_address }}</td>
+                        <td>{{ charge.owner_name }}</td>
+                        <td>
+                            {% if charge.prepayment > 0 %}
+                                <span class="text-success">{{ charge.prepayment }} руб.</span>
+                            {% else %}
+                                <span class="text-muted">0 руб.</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ charge.tariff.name }}<br>
+                            <small class="text-muted">{{ charge.tariff.rate_per_unit }} руб./{{ charge.tariff.get_unit_display }}</small>
+                        </td>
+                        <td>{{ charge.period|date:"Y-m" }}</td>
+                        <td>
+                            <strong>{{ charge.original_amount }} руб.</strong>
+                            {% if charge.amount != charge.original_amount %}
+                                <br><small class="text-muted">(текущая: {{ charge.amount }} руб.)</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if charge.paid_amount > 0 %}
+                                <span class="text-success">{{ charge.paid_amount }} руб.</span>
+                            {% else %}
+                                <span class="text-muted">0 руб.</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% with remaining=charge.remaining_amount %}
+                                {% if remaining > 0 %}
+                                    <strong class="text-danger">{{ remaining }} руб.</strong>
+                                {% else %}
+                                    <span class="text-success">0 руб.</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% if charge.is_paid %}
+                                <span class="badge badge-success">Оплачено</span>
+                            {% else %}
+                                {% if charge.paid_amount > 0 %}
+                                    <span class="badge badge-warning">Частично</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Не оплачено</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center">
+                            {% if search_query %}
+                                <div class="alert alert-info">
+                                    Начисления по запросу "{{ search_query }}" не найдены
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    Начислений нет. <a href="{% url 'payment_service:charge_create' %}">Создать начисление</a>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Пагинация -->
+            {% if is_paginated %}
+            <div class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">←</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">→</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

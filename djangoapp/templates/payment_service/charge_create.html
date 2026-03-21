@@ -1,0 +1,127 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Управление тарифами{% endblock %}
+
+{% block content %}
+<style>
+    body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    h2 { margin-top: 0; }
+    
+    /* Поиск */
+    .search-form { display: flex; gap: 10px; margin-bottom: 20px; }
+    .search-form input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+    .search-form button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    
+    /* Результаты поиска */
+    .results { display: grid; gap: 10px; margin-bottom: 20px; }
+    .result-item { padding: 15px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+    .result-item:hover { background: #f0f0f0; }
+    .result-item.selected { background: #e3f2fd; border-color: #2196f3; }
+    
+    /* Форма */
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+    button[type="submit"] { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
+    button[type="submit"]:disabled { background: #ccc; cursor: not-allowed; }
+    
+    .messages { margin-bottom: 20px; }
+    .message { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    .message.error { background: #f8d7da; color: #721c24; }
+    .message.success { background: #d4edda; color: #155724; }
+    
+    .selected-info { background: #e8f5e8; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+</style>
+<div class="container">
+    <div class="card">
+        <h2>Создание начисления</h2>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Поиск -->
+        <form method="get" class="search-form">
+            <input type="text" name="search" value="{{ search_query }}" placeholder="Поиск по адресу или владельцу...">
+            <button type="submit">Найти</button>
+            {% if search_query %}
+                <a href="{% url 'payment_service:charge_create' %}" style="padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px;">Сброс</a>
+            {% endif %}
+        </form>
+
+        <!-- Результаты поиска -->
+        {% if search_results %}
+            <div class="results">
+                {% for item in search_results %}
+                <div class="result-item {% if housing_id|add:'0' == item.id %}selected{% endif %}" 
+                        onclick="window.location.href='?housing_id={{ item.id }}{% if search_query %}&search={{ search_query }}{% endif %}'">
+                    <strong>{{ item.address }}</strong><br>
+                    Владелец: {{ item.owner_name }}<br>
+                    Площадь: {{ item.total_area }} м²<br>
+                    Тел: {{ item.phone }}
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Форма -->
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if selected_housing %}
+            <div class="selected-info">
+                <strong>Выбрана квартира:</strong><br>
+                {{ selected_housing.address }}<br>
+                Владелец: {{ selected_housing.owner.profile.full_name|default:"Не указан" }}<br>
+                Площадь: {{ selected_housing.total_area }} м²
+                <input type="hidden" name="housing_id" value="{{ housing_id }}">
+                <p><a href="{% url 'payment_service:charge_create' %}" style="color: #dc3545;">✕ Очистить</a></p>
+            </div>
+            {% else %}
+            <p style="color: #999;">Сначала выберите квартиру из результатов поиска</p>
+            {% endif %}
+
+            <div class="form-group">
+                <label>Тариф:</label>
+                <select name="tariff_id" required {% if not selected_housing %}disabled{% endif %}>
+                    <option value="">-- Выберите --</option>
+                    {% for tariff in tariffs %}
+                    <option value="{{ tariff.id }}">
+                        {{ tariff.name }} - {{ tariff.rate_per_unit }} руб./{{ tariff.get_unit_display }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Период:</label>
+                <input type="month" name="period" value="{{ today|date:'Y-m' }}" required {% if not selected_housing %}disabled{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label>Количество:</label>
+                <input type="number" name="consumption" step="0.01" min="0.01" 
+                        value="{% if default_consumption %}{{ default_consumption }}{% endif %}" 
+                        required {% if not selected_housing %}disabled{% endif %}>
+            </div>
+
+            <button type="submit" {% if not selected_housing %}disabled{% endif %}>
+                {% if selected_housing %}Создать начисление{% else %}Выберите квартиру{% endif %}
+            </button>
+        </form>
+
+        <p style="margin-top: 20px;">
+            <a href="{% url 'payment_service:charge_list' %}">← К списку начислений</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

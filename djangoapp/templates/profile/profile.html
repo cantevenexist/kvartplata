@@ -598,6 +598,15 @@
                                         Этаж {{ unit.floor }}
                                     </span>
                                     {% endif %}
+                                    <span class="housing-detail">
+                                        <i class="fa-solid fa-coins"></i> 
+                                        {% if  unit.prepayment %}
+                                        {{ unit.prepayment }}
+                                        {% else %}
+                                        0.00
+                                        {% endif %}
+                                        ₽
+                                    </span>
                                 </div>
                             </div>
                             <i class="fas fa-chevron-right" style="color: #007bff;"></i>

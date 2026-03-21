@@ -380,12 +380,18 @@
     <div class="page-header">
         <h1>
             <i class="fas fa-chart-line" style="color: #007bff;"></i>
+            {% if user.is_superuser%}
             Управление тарифами
+            {% else %}
+            Список тарифов
+            {% endif %}
         </h1>
+        {% if user.is_superuser%}
         <a href="{% url 'payment_service:tariff_create' %}" class="btn-primary">
             <i class="fas fa-plus"></i>
             Создать тариф
         </a>
+        {% endif %}
     </div>
 
     <!-- Фильтры и поиск -->
@@ -482,7 +488,9 @@
                         <th>Статус</th>
                         <th>Действителен до</th>
                         <th>Дата создания</th>
-                        <th>Действия</th>
+                        {% if user.is_superuser%}
+                            <th>Действия</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -517,6 +525,7 @@
                         <td>
                             <span class="text-muted">{{ tariff.created_at|date:"d.m.Y H:i" }}</span>
                         </td>
+                        {% if user.is_superuser%}
                         <td>
                             <div class="action-buttons">
                                 <a href="{% url 'payment_service:tariff_edit' tariff.id %}" 
@@ -550,6 +559,7 @@
                                 {% endif %}
                             </div>
                         </td>
+                        {% endif %}
                     </tr>
                     {% empty %}
                     <tr>

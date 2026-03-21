@@ -91,9 +91,23 @@ class Charge(models.Model):
         validators=[MinValueValidator(0)],
         verbose_name='Сумма начисления'
     )
+    # Новые поля
+    original_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        verbose_name='Первоначальная сумма'
+    )
+    paid_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name='Оплаченная сумма'
+    )
     is_paid = models.BooleanField(
         default=False,
-        verbose_name='Оплачено'
+        verbose_name='Полностью оплачено'
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -115,8 +129,38 @@ class Charge(models.Model):
         ]
 
     def __str__(self):
-        return f"Жилье {self.housing_id} - {self.period} - {self.amount}"
+        status = "Оплачено" if self.is_paid else f"Осталось {self.remaining_amount}"
+        return f"Жилье {self.housing_id} - {self.period} - {self.amount} ({status})"
 
+    @property
+    def remaining_amount(self):
+        """Оставшаяся сумма к оплате"""
+        return self.amount - self.paid_amount
+
+    def add_payment(self, payment_amount):
+        """
+        Добавить оплату к начислению
+        Возвращает остаток платежа, который не был использован
+        """
+        remaining = self.remaining_amount
+        
+        if payment_amount >= remaining:
+            # Полная оплата
+            self.paid_amount += remaining
+            self.is_paid = True
+            self.save()
+            return payment_amount - remaining
+        else:
+            # Частичная оплата
+            self.paid_amount += payment_amount
+            self.save()
+            return 0
+
+    def save(self, *args, **kwargs):
+        # При создании устанавливаем original_amount равным amount
+        if not self.pk:
+            self.original_amount = self.amount
+        super().save(*args, **kwargs)
 
 class Payment(models.Model):
     """

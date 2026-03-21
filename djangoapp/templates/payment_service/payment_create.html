@@ -1,0 +1,401 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .search-form {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+    }
+    .search-form input {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .search-form button {
+        padding: 8px 15px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .search-form a {
+        padding: 8px 15px;
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+    
+    /* Результаты поиска */
+    .results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    .result-card {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .result-card:hover {
+        background: #f5f5f5;
+        border-color: #007bff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .result-card.selected {
+        background: #e3f2fd;
+        border-color: #007bff;
+    }
+    .result-card h4 {
+        margin: 0 0 10px 0;
+        color: #333;
+    }
+    .debt-badge {
+        background: #dc3545;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: inline-block;
+    }
+    .partial-badge {
+        background: #ffc107;
+        color: #000;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: inline-block;
+    }
+    .prepayment-badge {
+        background: #28a745;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: inline-block;
+    }
+    
+    /* Выбранная квартира */
+    .selected-info {
+        background: #e8f5e8;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        border-left: 4px solid #28a745;
+    }
+    .prepayment-info {
+        background: #d4edda;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+        border-left: 4px solid #28a745;
+    }
+    
+    /* Таблица начислений */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+    th {
+        background: #343a40;
+        color: white;
+        padding: 10px;
+        text-align: left;
+    }
+    td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+    .charge-checkbox {
+        width: 30px;
+        text-align: center;
+    }
+    .original-amount {
+        text-decoration: line-through;
+        color: #999;
+        font-size: 12px;
+    }
+    
+    /* Форма */
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .btn-submit {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 16px;
+        transition: background 0.2s;
+    }
+    .btn-submit:hover {
+        background: #218838;
+    }
+    .btn-submit:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    
+    /* Информация о сумме */
+    .total-info {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+    
+    /* Текстовые стили */
+    .text-success { color: #28a745; }
+    .text-danger { color: #dc3545; }
+    .text-muted { color: #6c757d; }
+    .font-weight-bold { font-weight: bold; }
+</style>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3>Регистрация оплаты</h3>
+        </div>
+        
+        <div class="card-body">
+            <!-- Сообщения -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Поиск квартиры -->
+            <h4>Поиск квартиры</h4>
+            <form method="get" class="search-form">
+                <input type="text" name="search" value="{{ search_query }}" 
+                       placeholder="Поиск по адресу или владельцу...">
+                <button type="submit">Найти</button>
+                {% if search_query %}
+                    <a href="{% url 'payment_service:payment_create' %}">Сброс</a>
+                {% endif %}
+            </form>
+
+            <!-- Результаты поиска -->
+            {% if search_results %}
+                <h4>Результаты поиска</h4>
+                <div class="results-grid">
+                    {% for item in search_results %}
+                    <div class="result-card {% if housing_id|add:'0' == item.id %}selected{% endif %}"
+                         onclick="window.location.href='?housing_id={{ item.id }}{% if search_query %}&search={{ search_query }}{% endif %}'">
+                        <h4>{{ item.address }}</h4>
+                        <p><strong>Владелец:</strong> {{ item.owner_name }}</p>
+                        {% if item.prepayment > 0 %}
+                            <p><strong class="text-success">Аванс: {{ item.prepayment }} руб.</strong></p>
+                        {% endif %}
+                        <p><strong>Долг:</strong> {{ item.total_debt }} руб.</p>
+                        <p>
+                            {% if item.unpaid_charges > 0 %}
+                                <span class="debt-badge">{{ item.unpaid_charges }} неоплаченных начислений</span>
+                            {% else %}
+                                <span class="partial-badge">Нет долгов</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Форма оплаты -->
+            {% if selected_housing %}
+            <form method="post" id="paymentForm">
+                {% csrf_token %}
+                <input type="hidden" name="housing_id" value="{{ housing_id }}">
+
+                <div class="selected-info">
+                    <h4>Выбранная квартира</h4>
+                    <p><strong>Адрес:</strong> {{ selected_housing.address }}</p>
+                    <p><strong>Владелец:</strong> 
+                        {% if selected_housing.owner %}
+                            {{ selected_housing.owner.profile.full_name|default:selected_housing.owner.username }}
+                        {% else %}
+                            Нет владельца
+                        {% endif %}
+                    </p>
+                    
+                    {% if prepayment > 0 %}
+                    <div class="prepayment-info">
+                        <strong class="text-success">Аванс (переплата): {{ prepayment }} руб.</strong><br>
+                        <small>✓ Будет автоматически списан при оплате</small>
+                    </div>
+                    {% endif %}
+                    
+                    <p><strong>Текущий долг с учетом аванса:</strong> {{ total_debt }} руб.</p>
+                </div>
+
+                <!-- Неоплаченные начисления -->
+                {% if unpaid_charges %}
+                <h4>Неоплаченные начисления</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="charge-checkbox">Выбрать</th>
+                            <th>Период</th>
+                            <th>Тариф</th>
+                            <th>Начислено</th>
+                            <th>Оплачено</th>
+                            <th>Остаток</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for charge in unpaid_charges %}
+                        <tr>
+                            <td class="charge-checkbox">
+                                <input type="checkbox" name="selected_charges" value="{{ charge.id }}" 
+                                       onchange="updateTotal()">
+                            </td>
+                            <td>{{ charge.period|date:"Y-m" }}</td>
+                            <td>{{ charge.tariff.name }}</td>
+                            <td>
+                                <strong>{{ charge.original_amount }} руб.</strong>
+                                {% if charge.amount != charge.original_amount %}
+                                    <br><small class="original-amount">(текущая: {{ charge.amount }} руб.)</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if charge.paid_amount > 0 %}
+                                    <span class="text-success">{{ charge.paid_amount }} руб.</span>
+                                {% else %}
+                                    <span class="text-muted">0 руб.</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with remaining=charge.remaining_amount %}
+                                    {% if remaining > 0 %}
+                                        <strong class="text-danger">{{ remaining }} руб.</strong>
+                                    {% else %}
+                                        <span class="text-success">0 руб.</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="total-info">
+                    <strong>Выбрано к оплате:</strong> <span id="selected-total">0</span> руб.<br>
+                    <small class="text-muted">* Сумма будет распределена по выбранным начислениям</small>
+                    {% if prepayment > 0 %}
+                        <br><small class="text-success">* Аванс {{ prepayment }} руб. будет списан автоматически</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Данные платежа -->
+                <h4>Данные платежа</h4>
+                
+                <div class="form-group">
+                    <label>Сумма платежа *</label>
+                    <input type="number" name="amount" step="0.01" min="0.01" required 
+                           class="form-control" onchange="validateAmount()" onkeyup="validateAmount()">
+                </div>
+
+                <div class="form-group">
+                    <label>Способ оплаты *</label>
+                    <select name="payment_method" class="form-control" required>
+                        <option value="">-- Выберите способ --</option>
+                        {% for code, name in payment_methods %}
+                            <option value="{{ code }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Дата и время платежа *</label>
+                    <input type="datetime-local" name="payment_date" class="form-control" 
+                           value="{{ today|date:'Y-m-d\TH:i' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea name="description" class="form-control" rows="3" 
+                              placeholder="Например: Оплата за ЖКУ"></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submit-btn">
+                    Зарегистрировать платеж
+                </button>
+            </form>
+            {% endif %}
+
+            <!-- Ссылка на список платежей -->
+            <p style="margin-top: 20px;">
+                <a href="{% url 'payment_service:payment_list' %}">← К списку платежей</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateTotal() {
+    let total = 0;
+    document.querySelectorAll('input[name="selected_charges"]:checked').forEach(function(checkbox) {
+        let row = checkbox.closest('tr');
+        let remaining = row.querySelector('td:last-child strong')?.innerText || '0';
+        total += parseFloat(remaining) || 0;
+    });
+    document.getElementById('selected-total').innerText = total.toFixed(2);
+    validateAmount();
+}
+
+function validateAmount() {
+    let amount = parseFloat(document.querySelector('input[name="amount"]').value) || 0;
+    let selectedTotal = parseFloat(document.getElementById('selected-total').innerText) || 0;
+    let prepayment = {{ prepayment|default:0 }};
+    let submitBtn = document.getElementById('submit-btn');
+    
+    if (selectedTotal > 0) {
+        if (amount + prepayment < selectedTotal) {
+            let needed = (selectedTotal - prepayment).toFixed(2);
+            submitBtn.innerHTML = `⚠️ Нужно еще ${needed} руб. (с учетом аванса ${prepayment} руб.)`;
+            submitBtn.style.background = '#ffc107';
+            submitBtn.style.color = '#000';
+        } else {
+            submitBtn.innerHTML = 'Зарегистрировать платеж';
+            submitBtn.style.background = '#28a745';
+            submitBtn.style.color = 'white';
+        }
+    } else {
+        submitBtn.innerHTML = 'Зарегистрировать платеж';
+        submitBtn.style.background = '#28a745';
+        submitBtn.style.color = 'white';
+    }
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    updateTotal();
+});
+</script>
+{% endblock %}

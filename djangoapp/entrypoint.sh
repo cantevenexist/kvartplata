@@ -15,10 +15,17 @@ fi
 python manage.py makemigrations
 python manage.py migrate
 
+# Миграции для APScheduler
+python manage.py migrate django_apscheduler
+
 # Очищение таблиц базы данных Postgre
 # python manage.py flush --no-input
 
 # Создание аккаунта суперпользователя
 sh init_superadmin.sh
 
+# Запуск планировщика в фоновом режиме
+python /usr/src/app/scheduler_runner.py &
+
+# Запуск основного приложения
 exec "$@"

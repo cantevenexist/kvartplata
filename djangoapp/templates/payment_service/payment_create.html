@@ -82,6 +82,22 @@
         font-size: 12px;
         display: inline-block;
     }
+    .overdue-badge {
+        background: #dc3545;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: inline-block;
+    }
+    .waiting-badge {
+        background: #ffc107;
+        color: #000;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: inline-block;
+    }
     
     /* Выбранная квартира */
     .selected-info {
@@ -114,10 +130,6 @@
     td {
         padding: 10px;
         border-bottom: 1px solid #ddd;
-    }
-    .charge-checkbox {
-        width: 30px;
-        text-align: center;
     }
     .original-amount {
         text-decoration: line-through;
@@ -166,11 +178,19 @@
         border-radius: 4px;
         margin: 10px 0;
     }
+    .info-box {
+        background: #e7f3ff;
+        padding: 12px;
+        border-radius: 4px;
+        margin: 15px 0;
+        border-left: 4px solid #007bff;
+    }
     
     /* Текстовые стили */
     .text-success { color: #28a745; }
     .text-danger { color: #dc3545; }
     .text-muted { color: #6c757d; }
+    .text-warning { color: #ffc107; }
     .font-weight-bold { font-weight: bold; }
 </style>
 
@@ -214,13 +234,6 @@
                             <p><strong class="text-success">Аванс: {{ item.prepayment }} руб.</strong></p>
                         {% endif %}
                         <p><strong>Долг:</strong> {{ item.total_debt }} руб.</p>
-                        <p>
-                            {% if item.unpaid_charges > 0 %}
-                                <span class="debt-badge">{{ item.unpaid_charges }} неоплаченных начислений</span>
-                            {% else %}
-                                <span class="partial-badge">Нет долгов</span>
-                            {% endif %}
-                        </p>
                     </div>
                     {% endfor %}
                 </div>
@@ -256,26 +269,29 @@
                 <!-- Неоплаченные начисления -->
                 {% if unpaid_charges %}
                 <h4>Неоплаченные начисления</h4>
-                <table>
+                <div class="info-box">
+                    <strong>ℹ️ Информация:</strong> Оплата будет распределена автоматически, начиная с самых старых начислений. 
+                    Вы можете оплатить любую сумму, остаток будет зачислен как аванс.
+                </div>
+                
+                <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th class="charge-checkbox">Выбрать</th>
                             <th>Период</th>
                             <th>Тариф</th>
                             <th>Начислено</th>
                             <th>Оплачено</th>
                             <th>Остаток</th>
-                        </tr>
+                            <th>Статус</th>
+                        </thead>
                     </thead>
                     <tbody>
                         {% for charge in unpaid_charges %}
-                        <tr>
-                            <td class="charge-checkbox">
-                                <input type="checkbox" name="selected_charges" value="{{ charge.id }}" 
-                                       onchange="updateTotal()">
+                        <tr {% if charge.is_overdue %}style="background: #fff3f3;"{% endif %}>
+                            <td><strong>{{ charge.period|date:"F Y" }}</strong></td>
+                            <td>{{ charge.tariff.name }}<br>
+                                <small class="text-muted">{{ charge.tariff.rate_per_unit }} руб./{{ charge.tariff.get_unit_display }}</small>
                             </td>
-                            <td>{{ charge.period|date:"Y-m" }}</td>
-                            <td>{{ charge.tariff.name }}</td>
                             <td>
                                 <strong>{{ charge.original_amount }} руб.</strong>
                                 {% if charge.amount != charge.original_amount %}
@@ -298,16 +314,23 @@
                                     {% endif %}
                                 {% endwith %}
                             </td>
+                            <td>
+                                {% if charge.is_overdue %}
+                                    <span class="overdue-badge">Просрочено</span>
+                                {% else %}
+                                    <span class="waiting-badge">Ожидает оплаты</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
 
                 <div class="total-info">
-                    <strong>Выбрано к оплате:</strong> <span id="selected-total">0</span> руб.<br>
-                    <small class="text-muted">* Сумма будет распределена по выбранным начислениям</small>
+                    <strong>📊 Итого к оплате:</strong> 
+                    <span class="text-danger font-weight-bold">{{ total_debt }} руб.</span>
                     {% if prepayment > 0 %}
-                        <br><small class="text-success">* Аванс {{ prepayment }} руб. будет списан автоматически</small>
+                        <br><small class="text-success">✓ Аванс {{ prepayment }} руб. будет списан автоматически</small>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -318,7 +341,13 @@
                 <div class="form-group">
                     <label>Сумма платежа *</label>
                     <input type="number" name="amount" step="0.01" min="0.01" required 
-                           class="form-control" onchange="validateAmount()" onkeyup="validateAmount()">
+                           class="form-control" id="paymentAmount" onchange="updatePreview()" onkeyup="updatePreview()">
+                    <small class="text-muted">Введите сумму, которую хотите оплатить</small>
+                </div>
+
+                <div id="paymentPreview" class="total-info" style="display: none;">
+                    <strong>💰 Предварительный расчет:</strong><br>
+                    <span id="previewText"></span>
                 </div>
 
                 <div class="form-group">
@@ -358,44 +387,48 @@
 </div>
 
 <script>
-function updateTotal() {
-    let total = 0;
-    document.querySelectorAll('input[name="selected_charges"]:checked').forEach(function(checkbox) {
-        let row = checkbox.closest('tr');
-        let remaining = row.querySelector('td:last-child strong')?.innerText || '0';
-        total += parseFloat(remaining) || 0;
-    });
-    document.getElementById('selected-total').innerText = total.toFixed(2);
-    validateAmount();
-}
-
-function validateAmount() {
-    let amount = parseFloat(document.querySelector('input[name="amount"]').value) || 0;
-    let selectedTotal = parseFloat(document.getElementById('selected-total').innerText) || 0;
+function updatePreview() {
+    let amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+    let totalDebt = {{ total_debt|default:0 }};
     let prepayment = {{ prepayment|default:0 }};
-    let submitBtn = document.getElementById('submit-btn');
+    let previewDiv = document.getElementById('paymentPreview');
+    let previewText = document.getElementById('previewText');
     
-    if (selectedTotal > 0) {
-        if (amount + prepayment < selectedTotal) {
-            let needed = (selectedTotal - prepayment).toFixed(2);
-            submitBtn.innerHTML = `⚠️ Нужно еще ${needed} руб. (с учетом аванса ${prepayment} руб.)`;
-            submitBtn.style.background = '#ffc107';
-            submitBtn.style.color = '#000';
+    if (amount > 0) {
+        previewDiv.style.display = 'block';
+        
+        let totalWithPrepayment = totalDebt;
+        
+        if (amount >= totalWithPrepayment) {
+            let overpayment = amount - totalWithPrepayment;
+            if (overpayment > 0) {
+                previewText.innerHTML = `
+                    Оплата полностью покрывает долг.<br>
+                    <strong class="text-success">✅ Долг будет полностью погашен.</strong><br>
+                    Остаток <strong class="text-warning">${overpayment.toFixed(2)} руб.</strong> будет зачислен как аванс.
+                `;
+            } else {
+                previewText.innerHTML = `
+                    Оплата полностью покрывает долг.<br>
+                    <strong class="text-success">✅ Долг будет полностью погашен.</strong>
+                `;
+            }
         } else {
-            submitBtn.innerHTML = 'Зарегистрировать платеж';
-            submitBtn.style.background = '#28a745';
-            submitBtn.style.color = 'white';
+            let remaining = totalWithPrepayment - amount;
+            previewText.innerHTML = `
+                Оплата не полностью покрывает долг.<br>
+                <strong class="text-warning">⚠️ Остаток долга: ${remaining.toFixed(2)} руб.</strong><br>
+                Сумма будет распределена по самым старым начислениям.
+            `;
         }
     } else {
-        submitBtn.innerHTML = 'Зарегистрировать платеж';
-        submitBtn.style.background = '#28a745';
-        submitBtn.style.color = 'white';
+        previewDiv.style.display = 'none';
     }
 }
 
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
-    updateTotal();
+    updatePreview();
 });
 </script>
 {% endblock %}

@@ -1,4 +1,3 @@
-# views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views import View
@@ -6,6 +5,8 @@ from django.contrib import messages
 from django.utils import timezone
 from django.http import Http404
 from .models import Tariff
+from datetime import timedelta
+from django.utils.formats import date_format
 
 class AdminRequiredMixin(UserPassesTestMixin):
     def test_func(self):
@@ -131,6 +132,15 @@ class BuhRequiredMixin(LoginRequiredMixin):
             raise Http404('Нет доступа')
         return super().dispatch(request, *args, **kwargs)
 
+def get_due_date_for_period(period_date):
+    """
+    Возвращает дату, до которой нужно оплатить начисление
+    Например: март 2024 -> 15 апреля 2024
+    """
+    from datetime import timedelta
+    next_month = period_date.replace(day=1) + timedelta(days=32)
+    due_date = next_month.replace(day=15)
+    return due_date
 
 class ChargeCreateView(BuhRequiredMixin, TemplateView):
     """
@@ -169,7 +179,7 @@ class ChargeCreateView(BuhRequiredMixin, TemplateView):
                         'owner_name': profile.full_name or 'Не указано',
                         'phone': profile.phone_number or 'Не указан',
                         'email': user.email,
-                        'prepayment': unit.prepayment,
+                        'prepayment': getattr(unit, 'prepayment', 0),
                     })
                 except:
                     search_results.append({
@@ -179,7 +189,7 @@ class ChargeCreateView(BuhRequiredMixin, TemplateView):
                         'owner_name': 'Нет владельца',
                         'phone': '—',
                         'email': '—',
-                        'prepayment': unit.prepayment if hasattr(unit, 'prepayment') else 0,
+                        'prepayment': getattr(unit, 'prepayment', 0),
                     })
             context['search_results'] = search_results
         
@@ -192,7 +202,7 @@ class ChargeCreateView(BuhRequiredMixin, TemplateView):
                 context['selected_housing'] = housing
                 context['housing_id'] = housing_id
                 context['default_consumption'] = housing.total_area
-                context['prepayment'] = housing.prepayment
+                context['prepayment'] = getattr(housing, 'prepayment', 0)
             except:
                 pass
         
@@ -227,6 +237,22 @@ class ChargeCreateView(BuhRequiredMixin, TemplateView):
             from housing.models import HousingUnit
             unit = HousingUnit.objects.get(id=housing_id)
             
+            # Проверяем, существует ли уже начисление за этот период с этим тарифом
+            existing_charge = Charge.objects.filter(
+                housing_id=housing_id,
+                tariff=tariff,
+                period=period_date
+            ).first()
+            
+            if existing_charge:
+                from django.utils.formats import date_format
+                messages.error(
+                    request, 
+                    f'Начисление за {date_format(period_date, "F Y")} с тарифом "{tariff.name}" уже существует. '
+                    f'Сумма: {existing_charge.amount} руб.'
+                )
+                return redirect(f'{request.path}?housing_id={housing_id}')
+            
             with transaction.atomic():
                 # Проверяем, есть ли аванс
                 if unit.prepayment > 0:
@@ -242,10 +268,10 @@ class ChargeCreateView(BuhRequiredMixin, TemplateView):
                             period=period_date,
                             amount=amount,
                             original_amount=amount,
-                            paid_amount=amount,  # Важно! Указываем paid_amount
+                            paid_amount=amount,
                             is_paid=True
                         )
-                        messages.success(request, f'Начисление оплачено авансом. Остаток аванса: {unit.prepayment} руб.')
+                        messages.success(request, f'Начисление создано и оплачено авансом. Остаток аванса: {unit.prepayment} руб.')
                         
                     else:
                         # Аванс покрывает часть суммы
@@ -258,12 +284,12 @@ class ChargeCreateView(BuhRequiredMixin, TemplateView):
                             period=period_date,
                             amount=amount,
                             original_amount=amount,
-                            paid_amount=unit.prepayment,  # Важно! Указываем paid_amount
+                            paid_amount=unit.prepayment,
                             is_paid=False
                         )
                         
                         messages.info(request, 
-                            f'Списано {unit.prepayment} руб. из аванса. '
+                            f'Начисление создано. Списано {unit.prepayment} руб. из аванса. '
                             f'Остаток к оплате: {remaining} руб.'
                         )
                         
@@ -272,24 +298,20 @@ class ChargeCreateView(BuhRequiredMixin, TemplateView):
                         unit.save()
                 else:
                     # Обычное создание начисления - без аванса
-                    charge, created = Charge.objects.update_or_create(
+                    charge = Charge.objects.create(
                         housing_id=housing_id,
                         tariff=tariff,
                         period=period_date,
-                        defaults={
-                            'amount': amount,
-                            'original_amount': amount,
-                            'paid_amount': 0,  # Явно указываем paid_amount
-                            'is_paid': False
-                        }
+                        amount=amount,
+                        original_amount=amount,
+                        paid_amount=0,
+                        is_paid=False
                     )
                     
-                    if created:
-                        messages.success(request, f'Начисление создано: {amount} руб.')
-                    else:
-                        messages.success(request, f'Начисление обновлено: {amount} руб.')
+                    messages.success(request, f'Начисление создано: {amount} руб.')
 
-                self.update_debt(housing_id)
+                # Обновляем долги для всех периодов
+                self.update_debt_for_periods(housing_id)
 
             return redirect('payment_service:charge_list')
 
@@ -297,30 +319,149 @@ class ChargeCreateView(BuhRequiredMixin, TemplateView):
             messages.error(request, f'Ошибка: {e}')
             return redirect(f'{request.path}?housing_id={housing_id}')
 
-    def update_debt(self, housing_id):
-        """Обновление задолженности"""
+    def get_due_date_for_period(self, period_date):
+        """Возвращает дату оплаты для периода (15 число следующего месяца)"""
+        from dateutil.relativedelta import relativedelta
+        next_month = period_date + relativedelta(months=1)
+        due_date = next_month.replace(day=15)
+        return due_date
+
+    def update_debt_for_periods(self, housing_id):
+        """
+        Обновляет задолженность для каждого просроченного периода отдельно
+        Суммирует все тарифы за период (включая частично оплаченные)
+        """
         from housing.models import HousingUnit
+        from dateutil.relativedelta import relativedelta
         
-        total_charges = Charge.objects.filter(
-            housing_id=housing_id,
-            is_paid=False
-        ).aggregate(total=Sum('amount') - Sum('paid_amount'))['total'] or 0
+        today = timezone.now().date()
         
+        # Получаем ВСЕ начисления (не только is_paid=False, но и частично оплаченные)
+        # Нам нужны все начисления, у которых есть остаток (amount - paid_amount > 0)
+        all_charges = Charge.objects.filter(
+            housing_id=housing_id
+        ).exclude(
+            is_paid=True  # Исключаем полностью оплаченные
+        ).order_by('period')
+        
+        # Получаем аванс квартиры
         try:
             unit = HousingUnit.objects.get(id=housing_id)
-            prepayment = unit.prepayment
+            prepayment = getattr(unit, 'prepayment', 0)
         except:
             prepayment = 0
         
-        real_debt = max(total_charges - prepayment, 0)
+        # Группируем начисления по периодам и суммируем остатки
+        period_totals = {}
+        for charge in all_charges:
+            period = charge.period
+            remaining = charge.remaining_amount  # amount - paid_amount
+            if remaining > 0:
+                if period not in period_totals:
+                    period_totals[period] = Decimal('0')
+                period_totals[period] += remaining
         
-        last_charge = Charge.objects.filter(housing_id=housing_id).order_by('-period').first()
-        if last_charge:
-            Debt.objects.update_or_create(
+        # Словарь для хранения долгов по периодам
+        period_debts = {}
+        remaining_prepayment = prepayment
+        
+        # Проходим по периодам от старых к новым
+        for period in sorted(period_totals.keys()):
+            due_date = self.get_due_date_for_period(period)
+            period_debt = period_totals[period]
+            
+            # Если есть аванс, сначала списываем его с просроченных периодов
+            if remaining_prepayment > 0 and today > due_date:
+                if remaining_prepayment >= period_debt:
+                    period_debt = 0
+                    remaining_prepayment -= period_debt
+                else:
+                    period_debt -= remaining_prepayment
+                    remaining_prepayment = 0
+            
+            # Сохраняем долг только для просроченных периодов
+            if today > due_date and period_debt > 0:
+                period_debts[period] = period_debt
+        
+        # Обновляем записи в таблице Debt
+        # Удаляем все старые записи для этой квартиры
+        Debt.objects.filter(housing_id=housing_id).delete()
+        
+        # Создаем новые записи для каждого периода с долгом
+        for period, debt_amount in period_debts.items():
+            Debt.objects.create(
                 housing_id=housing_id,
-                period=last_charge.period,
-                defaults={'total_amount': real_debt}
+                period=period,
+                total_amount=debt_amount
             )
+        
+        # Обновляем остаток аванса в квартире (если он изменился)
+        if remaining_prepayment != prepayment:
+            unit.prepayment = remaining_prepayment
+            unit.save()
+
+class DebtListView(BuhRequiredMixin, ListView):
+    """Список задолженностей для бухгалтера"""
+    model = Debt
+    template_name = 'payment_service/debt_list.html'
+    context_object_name = 'debts'
+    paginate_by = 50
+
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(total_amount__gt=0)
+        
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            from housing.models import HousingUnit
+            units = HousingUnit.objects.filter(
+                Q(address__icontains=search_query) |
+                Q(owner__profile__full_name__icontains=search_query) |
+                Q(owner__username__icontains=search_query)
+            ).distinct()
+            
+            if units.exists():
+                housing_ids = [unit.id for unit in units]
+                queryset = queryset.filter(housing_id__in=housing_ids)
+            else:
+                queryset = queryset.none()
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_query'] = self.request.GET.get('search', '')
+        
+        from housing.models import HousingUnit
+        
+        debts = context['debts']
+        housing_ids = [debt.housing_id for debt in debts]
+        
+        if housing_ids:
+            units = HousingUnit.objects.filter(id__in=housing_ids).select_related('owner', 'owner__profile')
+            housing_data = {}
+            
+            for unit in units:
+                owner_name = 'Нет владельца'
+                if unit.owner:
+                    try:
+                        owner_name = unit.owner.profile.full_name or unit.owner.username
+                    except:
+                        owner_name = unit.owner.username
+                
+                housing_data[unit.id] = {
+                    'address': unit.address,
+                    'owner_name': owner_name,
+                }
+            
+            for debt in debts:
+                if debt.housing_id in housing_data:
+                    debt.housing_address = housing_data[debt.housing_id]['address']
+                    debt.owner_name = housing_data[debt.housing_id]['owner_name']
+                else:
+                    debt.housing_address = f'Жилье #{debt.housing_id}'
+                    debt.owner_name = '—'
+        
+        return context
 
 
 class ChargeListView(BuhRequiredMixin, ListView):
@@ -374,248 +515,6 @@ class ChargeListView(BuhRequiredMixin, ListView):
         
         return context
 
-
-class PaymentCreateView(BuhRequiredMixin, TemplateView):
-    """
-    Страница регистрации оплаты
-    """
-    template_name = 'payment_service/payment_create.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['payment_methods'] = Payment.PAYMENT_METHODS
-        context['today'] = timezone.now()
-        
-        # Поиск квартиры
-        search_query = self.request.GET.get('search', '')
-        context['search_query'] = search_query
-        
-        if search_query:
-            from housing.models import HousingUnit
-            units = HousingUnit.objects.filter(
-                Q(address__icontains=search_query) |
-                Q(owner__profile__full_name__icontains=search_query) |
-                Q(owner__username__icontains=search_query)
-            ).distinct()[:20]
-            
-            search_results = []
-            for unit in units:
-                # Считаем реальный долг с учетом аванса
-                total_charges = Charge.objects.filter(
-                    housing_id=unit.id, 
-                    is_paid=False
-                ).aggregate(total=Sum('amount') - Sum('paid_amount'))['total'] or 0
-                
-                real_debt = max(total_charges - unit.prepayment, 0)
-                
-                unpaid_charges = Charge.objects.filter(
-                    housing_id=unit.id, 
-                    is_paid=False
-                ).count()
-                
-                owner_name = 'Нет владельца'
-                if unit.owner:
-                    try:
-                        owner_name = unit.owner.profile.full_name or unit.owner.username
-                    except:
-                        owner_name = unit.owner.username
-                
-                search_results.append({
-                    'id': unit.id,
-                    'address': unit.address,
-                    'owner_name': owner_name,
-                    'total_debt': real_debt,
-                    'prepayment': unit.prepayment,
-                    'unpaid_charges': unpaid_charges,
-                })
-            context['search_results'] = search_results
-        
-        # Если выбрана квартира
-        housing_id = self.request.GET.get('housing_id')
-        if housing_id:
-            try:
-                from housing.models import HousingUnit
-                unit = HousingUnit.objects.get(id=housing_id)
-                context['selected_housing'] = unit
-                context['housing_id'] = housing_id
-                
-                # Получаем все неоплаченные начисления с остатком
-                unpaid_charges = Charge.objects.filter(
-                    housing_id=housing_id,
-                    is_paid=False
-                ).select_related('tariff').order_by('period')
-                
-                for charge in unpaid_charges:
-                    if unit.owner:
-                        try:
-                            charge.owner_name = unit.owner.profile.full_name or unit.owner.username
-                        except:
-                            charge.owner_name = unit.owner.username
-                    else:
-                        charge.owner_name = 'Нет владельца'
-                    charge.address = unit.address
-                    charge.remaining = charge.remaining_amount
-                
-                context['unpaid_charges'] = unpaid_charges
-                
-                # Считаем общий долг с учетом аванса
-                total_charges = unpaid_charges.aggregate(total=Sum('amount') - Sum('paid_amount'))['total'] or 0
-                context['total_debt'] = max(total_charges - unit.prepayment, 0)
-                context['prepayment'] = unit.prepayment
-                
-            except Exception as e:
-                print(f"Error: {e}")
-        
-        return context
-    
-    def post(self, request, *args, **kwargs):
-        housing_id = request.POST.get('housing_id')
-        amount = request.POST.get('amount')
-        payment_method = request.POST.get('payment_method')
-        payment_date = request.POST.get('payment_date')
-        description = request.POST.get('description', '')
-        selected_charges = request.POST.getlist('selected_charges')
-        
-        if not all([housing_id, amount, payment_method, payment_date]):
-            messages.error(request, 'Заполните все обязательные поля')
-            return redirect(f'{request.path}?housing_id={housing_id}')
-        
-        try:
-            housing_id = int(housing_id)
-            amount = Decimal(amount)
-            
-            if amount <= 0:
-                messages.error(request, 'Сумма должна быть больше 0')
-                return redirect(f'{request.path}?housing_id={housing_id}')
-            
-            with transaction.atomic():
-                from housing.models import HousingUnit
-                unit = HousingUnit.objects.get(id=housing_id)
-                
-                # Создаем платеж
-                payment = Payment.objects.create(
-                    housing_id=housing_id,
-                    amount=amount,
-                    payment_method=payment_method,
-                    payment_date=datetime.strptime(payment_date, '%Y-%m-%dT%H:%M'),
-                    description=description
-                )
-                
-                # Получаем все неоплаченные начисления
-                if selected_charges:
-                    unpaid_charges = Charge.objects.filter(
-                        housing_id=housing_id,
-                        is_paid=False,
-                        id__in=selected_charges
-                    ).order_by('period', 'id')
-                else:
-                    unpaid_charges = Charge.objects.filter(
-                        housing_id=housing_id,
-                        is_paid=False
-                    ).order_by('period', 'id')
-                
-                remaining_amount = amount
-                
-                # Сначала используем аванс если он есть
-                if unit.prepayment > 0 and not selected_charges:
-                    # Если есть аванс, сначала списываем его с долгов
-                    for charge in unpaid_charges:
-                        if unit.prepayment <= 0:
-                            break
-                        
-                        remaining = charge.remaining_amount
-                        
-                        if unit.prepayment >= remaining:
-                            # Аванс покрывает всё начисление
-                            charge.paid_amount += remaining
-                            charge.is_paid = True
-                            charge.save()
-                            unit.prepayment -= remaining
-                            messages.info(request, f'Начисление #{charge.id} оплачено авансом')
-                        else:
-                            # Аванс покрывает часть
-                            charge.paid_amount += unit.prepayment
-                            charge.save()
-                            messages.info(request, 
-                                f'Начисление #{charge.id} частично оплачено авансом. '
-                                f'Остаток: {charge.remaining_amount} руб.'
-                            )
-                            unit.prepayment = 0
-                            break
-                    
-                    unit.save()
-                
-                # Теперь обрабатываем текущий платеж
-                for charge in unpaid_charges:
-                    if remaining_amount <= 0:
-                        break
-                    
-                    remaining = charge.remaining_amount
-                    
-                    if remaining_amount >= remaining:
-                        # Полная оплата начисления
-                        charge.paid_amount += remaining
-                        charge.is_paid = True
-                        charge.save()
-                        remaining_amount -= remaining
-                        messages.info(request, f'Начисление #{charge.id} полностью оплачено')
-                    else:
-                        # Частичная оплата
-                        charge.paid_amount += remaining_amount
-                        charge.save()
-                        messages.info(request, 
-                            f'Начисление #{charge.id} частично оплачено. '
-                            f'Остаток: {charge.remaining_amount} руб.'
-                        )
-                        remaining_amount = 0
-                
-                # Если остались деньги (переплата) - добавляем в аванс квартиры
-                if remaining_amount > 0:
-                    unit.prepayment += remaining_amount
-                    unit.save()
-                    messages.success(request, 
-                        f'Переплата {remaining_amount} руб. добавлена к авансу квартиры. '
-                        f'Текущий аванс: {unit.prepayment} руб.'
-                    )
-                
-                # Обновляем задолженность с учетом аванса
-                self.update_debt(housing_id)
-                
-                messages.success(request, f'Платеж #{payment.id} успешно зарегистрирован на сумму {amount} руб.')
-                return redirect('payment_service:payment_list')
-                
-        except Exception as e:
-            messages.error(request, f'Ошибка: {e}')
-            return redirect(f'{request.path}?housing_id={housing_id}')
-    
-    def update_debt(self, housing_id):
-        """Обновление задолженности с учетом аванса"""
-        from housing.models import HousingUnit
-        
-        # Считаем все неоплаченные начисления
-        total_charges = Charge.objects.filter(
-            housing_id=housing_id,
-            is_paid=False
-        ).aggregate(total=Sum('amount') - Sum('paid_amount'))['total'] or 0
-        
-        # Получаем аванс квартиры
-        try:
-            unit = HousingUnit.objects.get(id=housing_id)
-            prepayment = unit.prepayment
-        except:
-            prepayment = 0
-        
-        # Реальный долг = начисления минус аванс
-        real_debt = max(total_charges - prepayment, 0)
-        
-        # Обновляем или создаем запись о задолженности
-        last_charge = Charge.objects.filter(housing_id=housing_id).order_by('-period').first()
-        if last_charge:
-            Debt.objects.update_or_create(
-                housing_id=housing_id,
-                period=last_charge.period,
-                defaults={'total_amount': real_debt}
-            )
 
 class PaymentListView(BuhRequiredMixin, ListView):
     """Список платежей"""
@@ -820,3 +719,424 @@ def register_payment(housing_id, amount, payment_method, payment_date=None,
             
     except Exception as e:
         return False, f'Ошибка регистрации платежа: {e}'
+
+
+from .debt_calculator import get_debt_statistics, update_single_debt
+
+
+class BuhRequiredMixin(LoginRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not (request.user.is_staff and not request.user.is_superuser):
+            raise Http404('Нет доступа')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class DebtListView(BuhRequiredMixin, ListView):
+    """Список задолженностей для бухгалтера"""
+    model = Debt
+    template_name = 'payment_service/debt_list.html'
+    context_object_name = 'debts'
+    paginate_by = 50
+
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(total_amount__gt=0)
+        
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            from housing.models import HousingUnit
+            units = HousingUnit.objects.filter(
+                Q(address__icontains=search_query) |
+                Q(owner__profile__full_name__icontains=search_query) |
+                Q(owner__username__icontains=search_query)
+            ).distinct()
+            
+            if units.exists():
+                housing_ids = [unit.id for unit in units]
+                queryset = queryset.filter(housing_id__in=housing_ids)
+            else:
+                queryset = queryset.none()
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_query'] = self.request.GET.get('search', '')
+        context['statistics'] = get_debt_statistics()
+        
+        from housing.models import HousingUnit
+        
+        debts = context['debts']
+        housing_ids = [debt.housing_id for debt in debts]
+        
+        if housing_ids:
+            units = HousingUnit.objects.filter(id__in=housing_ids).select_related('owner', 'owner__profile')
+            housing_data = {}
+            
+            for unit in units:
+                owner_name = 'Нет владельца'
+                if unit.owner:
+                    try:
+                        owner_name = unit.owner.profile.full_name or unit.owner.username
+                    except:
+                        owner_name = unit.owner.username
+                
+                housing_data[unit.id] = {
+                    'address': unit.address,
+                    'owner_name': owner_name,
+                }
+            
+            for debt in debts:
+                if debt.housing_id in housing_data:
+                    debt.housing_address = housing_data[debt.housing_id]['address']
+                    debt.owner_name = housing_data[debt.housing_id]['owner_name']
+                else:
+                    debt.housing_address = f'Жилье #{debt.housing_id}'
+                    debt.owner_name = '—'
+        
+        return context
+
+
+class UserDebtView(LoginRequiredMixin, TemplateView):
+    """Просмотр долгов пользователя в личном кабинете"""
+    template_name = 'payment_service/user_debt.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        from housing.models import HousingUnit
+        user_housings = HousingUnit.objects.filter(owner=self.request.user)
+        
+        debts = []
+        total_debt = 0
+        max_overdue = 0
+        
+        for housing in user_housings:
+            try:
+                debt = Debt.objects.get(housing_id=housing.id)
+                if debt.total_amount > 0:
+                    debts.append({
+                        'housing_id': housing.id,
+                        'address': housing.address,
+                        'total_amount': debt.total_amount,
+                        'overdue_days': debt.overdue_days,
+                        'overdue_since': debt.overdue_since,
+                        'last_period': debt.last_period,
+                    })
+                    total_debt += debt.total_amount
+                    if debt.overdue_days > max_overdue:
+                        max_overdue = debt.overdue_days
+            except Debt.DoesNotExist:
+                pass
+        
+        context['debts'] = debts
+        context['total_debt'] = total_debt
+        context['max_overdue'] = max_overdue
+        context['has_debt'] = len(debts) > 0
+        
+        return context
+
+
+class PaymentCreateView(BuhRequiredMixin, TemplateView):
+    """
+    Страница регистрации оплаты
+    """
+    template_name = 'payment_service/payment_create.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['payment_methods'] = Payment.PAYMENT_METHODS
+        context['today'] = timezone.now()
+        
+        # Поиск квартиры
+        search_query = self.request.GET.get('search', '')
+        context['search_query'] = search_query
+        
+        if search_query:
+            from housing.models import HousingUnit
+            units = HousingUnit.objects.filter(
+                Q(address__icontains=search_query) |
+                Q(owner__profile__full_name__icontains=search_query) |
+                Q(owner__username__icontains=search_query)
+            ).distinct()[:20]
+            
+            search_results = []
+            for unit in units:
+                # Считаем реальный долг (только просроченные, суммируем по всем тарифам)
+                today = timezone.now().date()
+                total_debt = Decimal('0')
+                
+                # Получаем все начисления с остатком
+                all_charges = Charge.objects.filter(
+                    housing_id=unit.id
+                ).exclude(
+                    is_paid=True
+                ).order_by('period')
+                
+                # Группируем по периодам и суммируем остатки
+                period_totals = {}
+                for charge in all_charges:
+                    remaining = charge.remaining_amount
+                    if remaining > 0:
+                        period = charge.period
+                        if period not in period_totals:
+                            period_totals[period] = Decimal('0')
+                        period_totals[period] += remaining
+                
+                # Считаем долг только для просроченных периодов
+                for period, amount in period_totals.items():
+                    due_date = self.get_due_date_for_period(period)
+                    if today > due_date:
+                        total_debt += amount
+                
+                owner_name = 'Нет владельца'
+                if unit.owner:
+                    try:
+                        owner_name = unit.owner.profile.full_name or unit.owner.username
+                    except:
+                        owner_name = unit.owner.username
+                
+                search_results.append({
+                    'id': unit.id,
+                    'address': unit.address,
+                    'owner_name': owner_name,
+                    'total_debt': total_debt,
+                    'prepayment': getattr(unit, 'prepayment', 0),
+                })
+            context['search_results'] = search_results
+        
+        # Если выбрана квартира
+        housing_id = self.request.GET.get('housing_id')
+        if housing_id:
+            try:
+                from housing.models import HousingUnit
+                unit = HousingUnit.objects.get(id=housing_id)
+                context['selected_housing'] = unit
+                context['housing_id'] = housing_id
+                
+                # Получаем все начисления с остатком
+                all_charges = Charge.objects.filter(
+                    housing_id=housing_id
+                ).exclude(
+                    is_paid=True
+                ).select_related('tariff').order_by('period')
+                
+                today = timezone.now().date()
+                for charge in all_charges:
+                    charge.remaining = charge.remaining_amount
+                    due_date = self.get_due_date_for_period(charge.period)
+                    charge.is_overdue = today > due_date
+                
+                context['unpaid_charges'] = all_charges
+                context['prepayment'] = getattr(unit, 'prepayment', 0)
+                
+                # Считаем общий долг (суммируем по всем тарифам за просроченные периоды)
+                period_totals = {}
+                for charge in all_charges:
+                    remaining = charge.remaining_amount
+                    if remaining > 0:
+                        period = charge.period
+                        if period not in period_totals:
+                            period_totals[period] = Decimal('0')
+                        period_totals[period] += remaining
+                
+                total_debt = Decimal('0')
+                for period, amount in period_totals.items():
+                    due_date = self.get_due_date_for_period(period)
+                    if today > due_date:
+                        total_debt += amount
+                
+                context['total_debt'] = total_debt
+                
+            except Exception as e:
+                print(f"Error: {e}")
+        
+        return context
+    
+    def get_due_date_for_period(self, period_date):
+        """Возвращает дату оплаты для периода (15 число следующего месяца)"""
+        from dateutil.relativedelta import relativedelta
+        next_month = period_date + relativedelta(months=1)
+        due_date = next_month.replace(day=15)
+        return due_date
+    
+    def post(self, request, *args, **kwargs):
+        housing_id = request.POST.get('housing_id')
+        amount = request.POST.get('amount')
+        payment_method = request.POST.get('payment_method')
+        payment_date = request.POST.get('payment_date')
+        description = request.POST.get('description', '')
+        
+        if not all([housing_id, amount, payment_method, payment_date]):
+            messages.error(request, 'Заполните все обязательные поля')
+            return redirect(f'{request.path}?housing_id={housing_id}')
+        
+        try:
+            housing_id = int(housing_id)
+            amount = Decimal(amount)
+            
+            if amount <= 0:
+                messages.error(request, 'Сумма должна быть больше 0')
+                return redirect(f'{request.path}?housing_id={housing_id}')
+            
+            with transaction.atomic():
+                from housing.models import HousingUnit
+                unit = HousingUnit.objects.get(id=housing_id)
+                
+                # Создаем платеж
+                payment = Payment.objects.create(
+                    housing_id=housing_id,
+                    amount=amount,
+                    payment_method=payment_method,
+                    payment_date=datetime.strptime(payment_date, '%Y-%m-%dT%H:%M'),
+                    description=description
+                )
+                
+                # Получаем ВСЕ начисления с остатком, сортируем от старых к новым
+                unpaid_charges = Charge.objects.filter(
+                    housing_id=housing_id
+                ).exclude(
+                    is_paid=True
+                ).order_by('period', 'id')
+                
+                remaining_amount = amount
+                prepayment = getattr(unit, 'prepayment', 0)
+                
+                # Сначала используем аванс если он есть
+                if prepayment > 0:
+                    for charge in unpaid_charges:
+                        if prepayment <= 0:
+                            break
+                        
+                        remaining = charge.remaining_amount
+                        
+                        if prepayment >= remaining:
+                            charge.paid_amount += remaining
+                            if charge.paid_amount >= charge.amount:
+                                charge.is_paid = True
+                            charge.save()
+                            prepayment -= remaining
+                            messages.info(request, f'Начисление за {charge.period.strftime("%B %Y")} ({charge.tariff.name}) оплачено авансом')
+                        else:
+                            charge.paid_amount += prepayment
+                            charge.save()
+                            messages.info(request, f'Начисление за {charge.period.strftime("%B %Y")} ({charge.tariff.name}) частично оплачено авансом')
+                            prepayment = 0
+                            break
+                    
+                    # Сохраняем остаток аванса
+                    unit.prepayment = prepayment
+                    unit.save()
+                
+                # Теперь обрабатываем текущий платеж
+                for charge in unpaid_charges:
+                    if remaining_amount <= 0:
+                        break
+                    
+                    remaining = charge.remaining_amount
+                    
+                    if remaining_amount >= remaining:
+                        # Полная оплата начисления
+                        charge.paid_amount += remaining
+                        if charge.paid_amount >= charge.amount:
+                            charge.is_paid = True
+                        charge.save()
+                        remaining_amount -= remaining
+                        messages.info(request, f'Начисление за {charge.period.strftime("%B %Y")} ({charge.tariff.name}) полностью оплачено')
+                    else:
+                        # Частичная оплата
+                        charge.paid_amount += remaining_amount
+                        charge.save()
+                        messages.info(request, f'Начисление за {charge.period.strftime("%B %Y")} ({charge.tariff.name}) частично оплачено. Остаток: {charge.remaining_amount} руб.')
+                        remaining_amount = 0
+                
+                # Если остались деньги (переплата) - добавляем в аванс квартиры
+                if remaining_amount > 0:
+                    unit.prepayment = getattr(unit, 'prepayment', 0) + remaining_amount
+                    unit.save()
+                    messages.success(request, 
+                        f'Переплата {remaining_amount} руб. добавлена к авансу. '
+                        f'Текущий аванс: {unit.prepayment} руб.'
+                    )
+                
+                # Обновляем долги для каждого просроченного периода отдельно
+                self.update_debt_for_periods(housing_id)
+                
+                messages.success(request, f'Платеж #{payment.id} успешно зарегистрирован на сумму {amount} руб.')
+                return redirect('payment_service:payment_list')
+                
+        except Exception as e:
+            messages.error(request, f'Ошибка: {e}')
+            return redirect(f'{request.path}?housing_id={housing_id}')
+    
+    def update_debt_for_periods(self, housing_id):
+        """
+        Обновляет задолженность для каждого просроченного периода отдельно
+        Суммирует все тарифы за период (включая частично оплаченные)
+        """
+        from housing.models import HousingUnit
+        
+        today = timezone.now().date()
+        
+        # Получаем ВСЕ начисления с остатком (исключаем полностью оплаченные)
+        all_charges = Charge.objects.filter(
+            housing_id=housing_id
+        ).exclude(
+            is_paid=True
+        ).order_by('period')
+        
+        # Получаем аванс квартиры
+        try:
+            unit = HousingUnit.objects.get(id=housing_id)
+            prepayment = getattr(unit, 'prepayment', 0)
+        except:
+            prepayment = 0
+        
+        # Группируем начисления по периодам и суммируем остатки
+        period_totals = {}
+        for charge in all_charges:
+            period = charge.period
+            remaining = charge.remaining_amount
+            if remaining > 0:
+                if period not in period_totals:
+                    period_totals[period] = Decimal('0')
+                period_totals[period] += remaining
+        
+        # Словарь для хранения долгов по периодам
+        period_debts = {}
+        remaining_prepayment = prepayment
+        
+        # Проходим по периодам от старых к новым
+        for period in sorted(period_totals.keys()):
+            due_date = self.get_due_date_for_period(period)
+            period_debt = period_totals[period]
+            
+            # Если есть аванс, сначала списываем его с просроченных периодов
+            if remaining_prepayment > 0 and today > due_date:
+                if remaining_prepayment >= period_debt:
+                    period_debt = 0
+                    remaining_prepayment -= period_debt
+                else:
+                    period_debt -= remaining_prepayment
+                    remaining_prepayment = 0
+            
+            # Сохраняем долг только для просроченных периодов
+            if today > due_date and period_debt > 0:
+                period_debts[period] = period_debt
+        
+        # Обновляем записи в таблице Debt
+        Debt.objects.filter(housing_id=housing_id).delete()
+        
+        # Создаем новые записи для каждого периода с долгом
+        for period, debt_amount in period_debts.items():
+            Debt.objects.create(
+                housing_id=housing_id,
+                period=period,
+                total_amount=debt_amount
+            )
+        
+        # Обновляем остаток аванса в квартире (если он изменился)
+        if remaining_prepayment != prepayment:
+            unit.prepayment = remaining_prepayment
+            unit.save()

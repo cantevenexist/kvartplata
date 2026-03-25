@@ -1,0 +1,103 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Статистика -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5>Всего должников</h5>
+                    <h2>{{ statistics.total_debtors }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Общая сумма долга</h5>
+                    <h2>{{ statistics.total_debt|floatformat:2 }} руб.</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <h3 class="card-title">Список задолженностей</h3>
+        </div>
+        
+        <div class="card-body">
+            <form method="get" class="mb-3">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" value="{{ search_query }}" 
+                           placeholder="Поиск по адресу или владельцу...">
+                    <div class="input-group-append">
+                        <button type="submit" class="btn btn-primary">Найти</button>
+                        <a href="{% url 'payment_service:debt_list' %}" class="btn btn-secondary">Сброс</a>
+                    </div>
+                </div>
+            </form>
+
+            <table class="table table-bordered table-striped">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>ID жилья</th>
+                        <th>Адрес</th>
+                        <th>Владелец</th>
+                        <th>Сумма долга</th>
+                        <th>Период</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for debt in debts %}
+                    <tr>
+                        <td>{{ debt.housing_id }}</td>
+                        <td><strong>{{ debt.housing_address }}</strong></td>
+                        <td>{{ debt.owner_name }}</td>
+                        <td class="text-danger font-weight-bold">{{ debt.total_amount }} руб.</td>
+                        <td>{{ debt.period|date:"F Y"|default:"—" }}</td>
+                        <td>
+                            <a href="{% url 'payment_service:payment_create' %}?housing_id={{ debt.housing_id }}" 
+                               class="btn btn-success btn-sm">Оплатить</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            {% if search_query %}
+                                Должники по запросу не найдены
+                            {% else %}
+                                Нет задолженностей
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if is_paginated %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">←</a>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <span class="current">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">→</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

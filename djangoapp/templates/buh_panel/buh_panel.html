@@ -10,13 +10,13 @@
 
 <div>
     <h3>Управление пользователями</h3>
-    <p><a href="{% url 'payment_service:payment_list' %}">Проверка оплат</a></p>
+    <p><a href="{% url 'payment_service:payment_list' %}">Оплаты</a></p>
     <p><a href="{% url 'payment_service:charge_list' %}">Начисления</a></p>
     <p><a href="{% url 'payment_service:payment_create' %}">Регистрация оплаты</a></p>
-    <p><a href="">Отчеты</a></p>
+    <p><a href="{% url 'payment_service:debt_list' %}">Задолженности</a></p>
+    <p><a href="{% url 'payment_service:tariff_list' %}">Тарифы</a></p>
 </div>
 <br>
-    <p><a href="{% url 'payment_service:tariff_list' %}">Список тарифов</a></p>
 
 <br>
 <p><a href="/">← Выйти из панели</a></p>

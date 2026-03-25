@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'admin_panel',
     'housing',
     'payment_service',
+    'django_apscheduler',
     # allauth
     'allauth',
     'allauth.account',

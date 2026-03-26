@@ -1,0 +1,96 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Мои платежи{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h3>Мои платежи</h3>
+            <a href="{% url 'user_profile:profile' username=request.user.username %}" class="btn btn-secondary btn-sm">
+                ← Назад в профиль
+            </a>
+        </div>
+        
+        <div class="card-body">
+            {% if payments %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Адрес</th>
+                                <th>Сумма</th>
+                                <th>Способ оплаты</th>
+                                <th>Дата платежа</th>
+                                <th>Описание</th>
+                            </thead>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td>#{{ payment.id }}</td>
+                                <td>{{ payment.housing_address }}</td>
+                                <td><strong>{{ payment.amount }} руб.</strong></td>
+                                <td>{{ payment.get_payment_method_display }}</td>
+                                <td>{{ payment.payment_date|date:"d.m.Y H:i" }}</td>
+                                <td>{{ payment.description|default:"—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Пагинация -->
+                {% if is_paginated %}
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}">←</a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="current">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}">→</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-credit-card fa-3x mb-3"></i>
+                    <p>У вас нет платежей</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .pagination {
+        margin-top: 20px;
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+    }
+    .pagination a, .pagination span {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #007bff;
+    }
+    .pagination .current {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+</style>
+{% endblock %}

@@ -16,5 +16,4 @@ urlpatterns = [
     path('payments/', views.PaymentListView.as_view(), name='payment_list'),
     path('api/register-payment/', views.api_register_payment, name='api_register_payment'),
     path('debts/', views.DebtListView.as_view(), name='debt_list'),
-    # path('my-debts/', views.UserDebtView.as_view(), name='user_debt'),
 ]

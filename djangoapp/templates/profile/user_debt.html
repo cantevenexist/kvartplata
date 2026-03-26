@@ -1,0 +1,78 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Мои задолженности{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h3>Мои задолженности</h3>
+            <a href="{% url 'user_profile:profile' username=request.user.username %}" class="btn btn-secondary btn-sm">
+                ← Назад в профиль
+            </a>
+        </div>
+        
+        <div class="card-body">
+            {% if has_debt %}
+                <div class="alert alert-warning">
+                    <strong>Внимание!</strong> У вас есть непогашенные задолженности.
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body">
+                                <h5>Общая сумма задолженности</h5>
+                                <h2>{{ total_debt|floatformat:2 }} руб.</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Адрес</th>
+                                <th>Период</th>
+                                <th>Сумма долга</th>
+                                <th>Срок оплаты</th>
+                                <th>Статус</th>
+                            </thead>
+                        </thead>
+                        <tbody>
+                            {% for debt in debts %}
+                            <tr {% if debt.is_overdue %}class="table-danger"{% endif %}>
+                                <td>{{ debt.address }}</td>
+                                <td>{{ debt.period|date:"F Y" }}</td>
+                                <td><strong class="text-danger">{{ debt.amount|floatformat:2 }} руб.</strong></td>
+                                <td>
+                                    {{ debt.due_date|date:"d.m.Y" }}
+                                    {% if debt.is_overdue %}
+                                        <br><small class="text-danger">Просрочено {{ debt.overdue_days }} дней</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if debt.is_overdue %}
+                                        <span class="badge badge-danger">Просрочено</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Ожидает оплаты</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+            {% else %}
+                <div class="alert alert-success text-center">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <p><strong>Отлично!</strong> У вас нет задолженностей.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

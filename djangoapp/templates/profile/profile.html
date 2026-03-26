@@ -631,6 +631,21 @@
             {% endif %}
         </div>
     </div>
+
+    <div class="action-buttons" style="margin-top: 20px;">
+        <a href="{% url 'user_profile:user_charges' %}" class="btn-primary">
+            <i class="fas fa-receipt"></i>
+            Мои начисления
+        </a>
+        <a href="{% url 'user_profile:user_payments' %}" class="btn-secondary">
+            <i class="fas fa-credit-card"></i>
+            Мои платежи
+        </a>
+        <a href="{% url 'user_profile:user_debt' %}" class="btn-primary">
+            <i class="fas fa-exclamation-triangle"></i>
+            Мои долги
+        </a>
+    </div>
     {% endif %}
 </div>
 

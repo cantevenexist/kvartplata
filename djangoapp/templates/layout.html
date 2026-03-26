@@ -358,8 +358,8 @@
                 {% endif %}
                 
                 <!-- Профиль -->
-                {% if is_staff and not is_superuser %}
-                <a href="/profile/" class="header-btn">
+                {% if not is_staff and not is_superuser %}
+                <a href="{% url 'user_profile:profile' username=request.user.username %}" class="header-btn">
                     <i class="far fa-user"></i>
                         <span class="username">{{ user.username }}</span>
                 </a>

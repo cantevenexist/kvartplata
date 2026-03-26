@@ -2,14 +2,16 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from .models import User, UserProfile, Notification
-from django.http import JsonResponse
-import uuid
+from django.views.generic import TemplateView, ListView
+from django.db.models import Q, Sum
+from django.utils import timezone
+from decimal import Decimal
+from datetime import datetime, timedelta
 from django.http import Http404
-
-class MyProfileView(LoginRequiredMixin, View):
-    def get(self, request):
-        return redirect('profile', username=request.user.username)
+from django.http import JsonResponse
+from .models import User, UserProfile, Notification
+from payment_service.models import Tariff, Charge, Payment, Debt
+from housing.models import HousingUnit
 
 
 class ProfileView(View):
@@ -38,6 +40,177 @@ class ProfileView(View):
         }
         
         return render(request, self.template_name, context)
+
+
+class UserChargesView(LoginRequiredMixin, ListView):
+    """Просмотр начислений пользователя"""
+    template_name = 'profile/user_charges.html'
+    context_object_name = 'charges'
+    paginate_by = 20
+
+    def get_queryset(self):
+        owner = self.request.user
+        
+        if owner.is_superuser or owner.is_staff:
+            raise Http404('У пользователя не может быть начислений.')
+
+        # Получаем квартиры пользователя
+        user_housings = HousingUnit.objects.filter(owner=self.request.user)
+        housing_ids = [housing.id for housing in user_housings]
+        
+        if not housing_ids:
+            return Charge.objects.none()
+        
+        return Charge.objects.filter(
+            housing_id__in=housing_ids
+        ).select_related('tariff').order_by('-period', '-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Добавляем адреса квартир
+        charges = context['charges']
+        housing_cache = {}
+        
+        for charge in charges:
+            if charge.housing_id not in housing_cache:
+                try:
+                    unit = HousingUnit.objects.get(id=charge.housing_id)
+                    housing_cache[charge.housing_id] = {
+                        'address': unit.address,
+                        'total_area': unit.total_area,
+                    }
+                except:
+                    housing_cache[charge.housing_id] = {
+                        'address': f'Квартира #{charge.housing_id}',
+                        'total_area': 0,
+                    }
+            
+            charge.housing_address = housing_cache[charge.housing_id]['address']
+            charge.housing_area = housing_cache[charge.housing_id]['total_area']
+            charge.remaining = charge.remaining_amount
+        
+        return context
+
+
+class UserPaymentsView(LoginRequiredMixin, ListView):
+    """Просмотр платежей пользователя"""
+    template_name = 'profile/user_payments.html'
+    context_object_name = 'payments'
+    paginate_by = 20
+
+    def get_queryset(self):
+        owner = self.request.user
+        
+        if owner.is_superuser or owner.is_staff:
+            raise Http404('У пользователя не может быть платежей.')
+
+        # Получаем квартиры пользователя
+        user_housings = HousingUnit.objects.filter(owner=self.request.user)
+        housing_ids = [housing.id for housing in user_housings]
+        
+        if not housing_ids:
+            return Payment.objects.none()
+        
+        return Payment.objects.filter(
+            housing_id__in=housing_ids
+        ).order_by('-payment_date', '-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Добавляем адреса квартир
+        payments = context['payments']
+        housing_cache = {}
+        
+        for payment in payments:
+            if payment.housing_id not in housing_cache:
+                try:
+                    unit = HousingUnit.objects.get(id=payment.housing_id)
+                    housing_cache[payment.housing_id] = {
+                        'address': unit.address,
+                    }
+                except:
+                    housing_cache[payment.housing_id] = {
+                        'address': f'Квартира #{payment.housing_id}',
+                    }
+            
+            payment.housing_address = housing_cache[payment.housing_id]['address']
+        
+        return context
+
+
+class UserDebtView(LoginRequiredMixin, TemplateView):
+    """Просмотр долгов пользователя в личном кабинете"""
+    template_name = 'profile/user_debt.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        owner = self.request.user
+        
+        if owner.is_superuser or owner.is_staff:
+            raise Http404('У пользователя не может быть долгов.')
+
+        user_housings = HousingUnit.objects.filter(owner=self.request.user)
+        
+        debts = []
+        total_debt = 0
+        
+        # Функция для расчета даты оплаты
+        def get_due_date(period_date):
+            from dateutil.relativedelta import relativedelta
+            next_month = period_date + relativedelta(months=1)
+            return next_month.replace(day=15)
+        
+        today = timezone.now().date()
+        
+        for housing in user_housings:
+            # Получаем все неоплаченные начисления для квартиры
+            unpaid_charges = Charge.objects.filter(
+                housing_id=housing.id,
+                is_paid=False
+            ).order_by('period')
+            
+            if not unpaid_charges.exists():
+                continue
+            
+            # Группируем по периодам
+            period_totals = {}
+            for charge in unpaid_charges:
+                period = charge.period
+                remaining = charge.remaining_amount
+                if remaining > 0:
+                    if period not in period_totals:
+                        period_totals[period] = Decimal('0')
+                    period_totals[period] += remaining
+            
+            # Проверяем просрочку для каждого периода
+            for period, amount in period_totals.items():
+                due_date = get_due_date(period)
+                is_overdue = today > due_date
+                overdue_days = (today - due_date).days if is_overdue else 0
+                
+                if amount > 0:
+                    debts.append({
+                        'housing_id': housing.id,
+                        'address': housing.address,
+                        'period': period,
+                        'amount': amount,
+                        'due_date': due_date,
+                        'is_overdue': is_overdue,
+                        'overdue_days': overdue_days,
+                    })
+                    total_debt += amount
+        
+        # Сортируем долги: сначала просроченные, потом по дате
+        debts.sort(key=lambda x: (not x['is_overdue'], x['period']))
+        
+        context['debts'] = debts
+        context['total_debt'] = total_debt
+        context['has_debt'] = len(debts) > 0
+        
+        return context
 
 
 class NotificationDetailView(LoginRequiredMixin, View):

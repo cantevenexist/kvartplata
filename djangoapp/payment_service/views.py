@@ -798,46 +798,6 @@ class DebtListView(BuhRequiredMixin, ListView):
         return context
 
 
-class UserDebtView(LoginRequiredMixin, TemplateView):
-    """Просмотр долгов пользователя в личном кабинете"""
-    template_name = 'payment_service/user_debt.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        from housing.models import HousingUnit
-        user_housings = HousingUnit.objects.filter(owner=self.request.user)
-        
-        debts = []
-        total_debt = 0
-        max_overdue = 0
-        
-        for housing in user_housings:
-            try:
-                debt = Debt.objects.get(housing_id=housing.id)
-                if debt.total_amount > 0:
-                    debts.append({
-                        'housing_id': housing.id,
-                        'address': housing.address,
-                        'total_amount': debt.total_amount,
-                        'overdue_days': debt.overdue_days,
-                        'overdue_since': debt.overdue_since,
-                        'last_period': debt.last_period,
-                    })
-                    total_debt += debt.total_amount
-                    if debt.overdue_days > max_overdue:
-                        max_overdue = debt.overdue_days
-            except Debt.DoesNotExist:
-                pass
-        
-        context['debts'] = debts
-        context['total_debt'] = total_debt
-        context['max_overdue'] = max_overdue
-        context['has_debt'] = len(debts) > 0
-        
-        return context
-
-
 class PaymentCreateView(BuhRequiredMixin, TemplateView):
     """
     Страница регистрации оплаты

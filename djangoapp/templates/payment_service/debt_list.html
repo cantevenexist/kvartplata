@@ -1,47 +1,465 @@
 {% extends 'layout.html' %}
 {% load static %}
 
+{% block title %}Список задолженностей{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
+<style>
+    .debts-list-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    
+    .page-header {
+        margin-bottom: 24px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    /* Статистика */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card.debtors {
+        border-left: 4px solid #dc3545;
+    }
+    
+    .stat-card.total-debt {
+        border-left: 4px solid #ffc107;
+    }
+    
+    .stat-card-content {
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .stat-info h5 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #666;
+        font-weight: 500;
+    }
+    
+    .stat-number {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .stat-card.debtors .stat-number {
+        color: #dc3545;
+    }
+    
+    .stat-card.total-debt .stat-number {
+        color: #ffc107;
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+    
+    .stat-card.debtors .stat-icon {
+        background: #f8d7da;
+        color: #dc3545;
+    }
+    
+    .stat-card.total-debt .stat-icon {
+        background: #fff3cd;
+        color: #ffc107;
+    }
+    
+    /* Карточка таблицы */
+    .table-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .table-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .table-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-header i {
+        color: #dc3545;
+    }
+    
+    .total-badge {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Поиск */
+    .search-section {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e0e0e0;
+        background: white;
+    }
+    
+    .search-form {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .search-input {
+        flex: 1;
+        min-width: 250px;
+        padding: 10px 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220,53,69,0.1);
+    }
+    
+    .btn-search {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    
+    .btn-search:hover {
+        background: #c82333;
+    }
+    
+    .btn-reset {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-reset:hover {
+        background: #5a6268;
+    }
+    
+    /* Таблица */
+    .table-wrapper {
+        overflow-x: auto;
+        padding: 0 24px 24px 24px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+    
+    th {
+        text-align: left;
+        padding: 16px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    td {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+    
+    tr:hover td {
+        background: #fff5f5;
+    }
+    
+    .housing-id {
+        font-family: monospace;
+        background: #e9ecef;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        color: #495057;
+        display: inline-block;
+    }
+    
+    .address-cell {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .owner-name {
+        color: #666;
+    }
+    
+    .debt-amount {
+        font-weight: 700;
+        font-size: 16px;
+        color: #dc3545;
+    }
+    
+    .period-cell {
+        font-weight: 500;
+        color: #666;
+    }
+    
+    .btn-pay {
+        background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-pay:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+    }
+    
+    /* Пагинация */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 20px 24px;
+        border-top: 1px solid #e0e0e0;
+        background: #f8f9fa;
+    }
+    
+    .pagination a, .pagination span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 8px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #dc3545;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .pagination a:hover {
+        background: #fff5f5;
+        border-color: #dc3545;
+        transform: translateY(-1px);
+    }
+    
+    .pagination .current {
+        background: #dc3545;
+        color: white;
+        border-color: #dc3545;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+    
+    .empty-state .text-muted {
+        font-size: 14px;
+        color: #aaa;
+    }
+    
+    @media (max-width: 768px) {
+        .debts-list-container {
+            padding: 16px;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .search-form {
+            flex-direction: column;
+        }
+        
+        .search-input {
+            width: 100%;
+        }
+        
+        .btn-search, .btn-reset {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        th, td {
+            padding: 12px;
+        }
+        
+        .debt-amount {
+            font-size: 14px;
+        }
+    }
+</style>
+
+<div class="debts-list-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i>
+            Управление задолженностями
+        </h1>
+    </div>
+
     <!-- Статистика -->
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h5>Всего должников</h5>
-                    <h2>{{ statistics.total_debtors }}</h2>
+    <div class="stats-grid">
+        <div class="stat-card debtors">
+            <div class="stat-card-content">
+                <div class="stat-info">
+                    <h5><i class="fas fa-users"></i> Всего должников</h5>
+                    <div class="stat-number">{{ statistics.total_debtors }}</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-user-slash"></i>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-warning text-dark">
-                <div class="card-body">
-                    <h5>Общая сумма долга</h5>
-                    <h2>{{ statistics.total_debt|floatformat:2 }} руб.</h2>
+        <div class="stat-card total-debt">
+            <div class="stat-card-content">
+                <div class="stat-info">
+                    <h5><i class="fas fa-chart-line"></i> Общая сумма долга</h5>
+                    <div class="stat-number">{{ statistics.total_debt|floatformat:2 }} ₽</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-credit-card"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card mt-3">
-        <div class="card-header">
-            <h3 class="card-title">Список задолженностей</h3>
+    <!-- Таблица задолженностей -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3>
+                <i class="fas fa-list"></i>
+                Список задолженностей
+            </h3>
+            <span class="total-badge">
+                <i class="fas fa-exclamation-triangle"></i>
+                Всего записей: {{ debts|length }}
+            </span>
         </div>
         
-        <div class="card-body">
-            <form method="get" class="mb-3">
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" value="{{ search_query }}" 
-                           placeholder="Поиск по адресу или владельцу...">
-                    <div class="input-group-append">
-                        <button type="submit" class="btn btn-primary">Найти</button>
-                        <a href="{% url 'payment_service:debt_list' %}" class="btn btn-secondary">Сброс</a>
-                    </div>
-                </div>
+        <div class="search-section">
+            <form method="get" class="search-form">
+                <input type="text" name="search" class="search-input" 
+                       value="{{ search_query }}" 
+                       placeholder="Поиск по адресу или владельцу...">
+                <button type="submit" class="btn-search">
+                    <i class="fas fa-search"></i> Найти
+                </button>
+                {% if search_query %}
+                    <a href="{% url 'payment_service:debt_list' %}" class="btn-reset">
+                        <i class="fas fa-times"></i> Сброс
+                    </a>
+                {% endif %}
             </form>
+        </div>
 
-            <table class="table table-bordered table-striped">
-                <thead class="thead-dark">
+        {% if debts %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
                     <tr>
                         <th>ID жилья</th>
                         <th>Адрес</th>
@@ -54,50 +472,82 @@
                 <tbody>
                     {% for debt in debts %}
                     <tr>
-                        <td>{{ debt.housing_id }}</td>
-                        <td><strong>{{ debt.housing_address }}</strong></td>
-                        <td>{{ debt.owner_name }}</td>
-                        <td class="text-danger font-weight-bold">{{ debt.total_amount }} руб.</td>
-                        <td>{{ debt.period|date:"F Y"|default:"—" }}</td>
+                        <td>
+                            <span class="housing-id">#{{ debt.housing_id }}</span>
+                        </td>
+                        <td class="address-cell">
+                            <i class="fas fa-home" style="color: #28a745; margin-right: 6px;"></i>
+                            {{ debt.housing_address }}
+                        </td>
+                        <td class="owner-name">
+                            <i class="fas fa-user" style="margin-right: 6px;"></i>
+                            {{ debt.owner_name|default:"—" }}
+                        </td>
+                        <td class="debt-amount">
+                            <i class="fas fa-ruble-sign"></i>
+                            {{ debt.total_amount|floatformat:2 }} ₽
+                        </td>
+                        <td class="period-cell">
+                            <i class="far fa-calendar-alt"></i>
+                            {{ debt.period|date:"F Y"|default:"—" }}
+                        </td>
                         <td>
                             <a href="{% url 'payment_service:payment_create' %}?housing_id={{ debt.housing_id }}" 
-                               class="btn btn-success btn-sm">Оплатить</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center">
-                            {% if search_query %}
-                                Должники по запросу не найдены
-                            {% else %}
-                                Нет задолженностей
-                            {% endif %}
+                               class="btn-pay">
+                                <i class="fas fa-credit-card"></i>
+                                Оплатить
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-
-            {% if is_paginated %}
-            <div class="pagination">
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">←</a>
+        </div>
+        
+        <!-- Пагинация -->
+        {% if is_paginated %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="current">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
                 {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                        <span class="current">{{ num }}</span>
-                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                        <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
-                    {% endif %}
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">→</a>
-                {% endif %}
-            </div>
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
             {% endif %}
         </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-check-circle" style="color: #28a745; opacity: 1;"></i>
+            <p>
+                {% if search_query %}
+                    Должники по запросу "{{ search_query }}" не найдены
+                {% else %}
+                    Нет задолженностей
+                {% endif %}
+            </p>
+            <p class="text-muted">
+                {% if search_query %}
+                    Попробуйте изменить параметры поиска
+                {% else %}
+                    Все платежи выполнены вовремя
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

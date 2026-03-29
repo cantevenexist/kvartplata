@@ -9,6 +9,8 @@ from housing.models import HousingUnit
 from user_profile.models import UserProfile
 from user_profile.forms import UserProfileForm
 from django.http import Http404
+from payment_service.models import Tariff
+from django.utils import timezone
 
 class AdminRequiredMixin(UserPassesTestMixin):
     """Миксин для проверки прав администратора"""
@@ -22,7 +24,48 @@ class AdminPanelView(LoginRequiredMixin, AdminRequiredMixin, View):
     """Главная страница панели администратора"""
     
     def get(self, request):
-        return render(request, 'admin_panel/admin_panel.html')
+        # Статистика пользователей
+        total_users = User.objects.count()
+        staff_users = User.objects.filter(is_staff=True).count()
+        regular_users = total_users - staff_users
+        
+        # Статистика жилья
+        total_housing = HousingUnit.objects.count()
+        
+        # Статистика тарифов
+        now = timezone.now().date()
+        tariffs = Tariff.objects.all()
+        
+        active_tariffs = tariffs.filter(
+            Q(is_active=True) & 
+            (Q(valid_to__isnull=True) | Q(valid_to__gte=now))
+        ).count()
+        
+        expired_tariffs = tariffs.filter(
+            Q(is_active=True) & 
+            Q(valid_to__lt=now)
+        ).count()
+        
+        archived_tariffs = tariffs.filter(is_active=False).count()
+        
+        context = {
+            # Статистика для общей карточки
+            'users_count': total_users,
+            'housing_count': total_housing,
+            'active_tariffs_count': active_tariffs,
+            
+            # Детальная статистика для карточки тарифов
+            'active_tariffs_count_detail': active_tariffs,
+            'expired_tariffs_count': expired_tariffs,
+            'archived_tariffs_count': archived_tariffs,
+            
+            # Дополнительная статистика (опционально)
+            'staff_users_count': staff_users,
+            'regular_users_count': regular_users,
+        }
+        
+        return render(request, 'admin_panel/admin_panel.html', context)
+    
 
 class RegisterUserView(LoginRequiredMixin, AdminRequiredMixin, View):
     """Регистрация нового пользователя"""

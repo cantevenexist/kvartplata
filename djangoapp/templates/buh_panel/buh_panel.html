@@ -1,23 +1,356 @@
 {% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Панель бухгалтера{% endblock %}
+
 {% block content %}
-<h1>Панель бухгалтера</h1>
+<style>
+    .buh-panel-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    
+    .page-header {
+        margin-bottom: 32px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    /* Сообщения */
+    .messages {
+        margin-bottom: 24px;
+    }
+    
+    .message {
+        padding: 14px 18px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    /* Сетка карточек */
+    .section-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+    
+    .section-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .section-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        border-color: #007bff;
+    }
+    
+    .section-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .section-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header i {
+        color: #007bff;
+        font-size: 20px;
+    }
+    
+    .section-body {
+        padding: 20px 24px;
+    }
+    
+    .link-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .link-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .link-item:last-child {
+        border-bottom: none;
+    }
+    
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #333;
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        flex: 1;
+    }
+    
+    .nav-link:hover {
+        background: #f8f9fa;
+    }
+    
+    .nav-icon {
+        width: 36px;
+        height: 36px;
+        background: #e7f3ff;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #007bff;
+        font-size: 16px;
+        transition: all 0.2s;
+    }
+    
+    .nav-link:hover .nav-icon {
+        background: #d4e5ff;
+        transform: scale(1.05);
+    }
+    
+    .nav-content {
+        flex: 1;
+    }
+    
+    .nav-title {
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+    
+    .nav-description {
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .nav-arrow {
+        color: #ccc;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+    
+    .nav-link:hover .nav-arrow {
+        color: #007bff;
+        transform: translateX(4px);
+    }
+    
+    /* Кнопка выхода */
+    .exit-section {
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e0e0e0;
+        text-align: center;
+    }
+    
+    .exit-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #dc3545;
+        text-decoration: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+        background: white;
+        border: 1px solid #f8d7da;
+    }
+    
+    .exit-link:hover {
+        background: #f8d7da;
+        transform: translateY(-1px);
+    }
+    
+    @media (max-width: 768px) {
+        .buh-panel-container {
+            padding: 16px;
+        }
+        
+        .section-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .link-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        
+        .nav-link {
+            width: 100%;
+        }
+        
+        .exit-link {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
 
-{% if messages %}
-    {% for message in messages %}
-        <p>{{ message }}</p>
-    {% endfor %}
-{% endif %}
+<div class="buh-panel-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-calculator" style="color: #007bff;"></i>
+            Панель бухгалтера
+        </h1>
+    </div>
 
-<div>
-    <h3>Управление пользователями</h3>
-    <p><a href="{% url 'payment_service:payment_list' %}">Оплаты</a></p>
-    <p><a href="{% url 'payment_service:charge_list' %}">Начисления</a></p>
-    <p><a href="{% url 'payment_service:payment_create' %}">Регистрация оплаты</a></p>
-    <p><a href="{% url 'payment_service:debt_list' %}">Задолженности</a></p>
-    <p><a href="{% url 'payment_service:tariff_list' %}">Тарифы</a></p>
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="message">
+                <i class="fas fa-check-circle"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="section-grid">
+        <!-- Начисления -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-receipt"></i>
+                    Управление начислениями
+                </h3>
+            </div>
+            <div class="section-body">
+                <div class="link-list">
+                    <div class="link-item">
+                        <a href="{% url 'payment_service:charge_list' %}" class="nav-link">
+                            <div class="nav-icon">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <div class="nav-content">
+                                <div class="nav-title">Начисления</div>
+                                <div class="nav-description">Просмотр и управление начислениями</div>
+                            </div>
+                            <i class="fas fa-chevron-right nav-arrow"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Оплаты -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-credit-card"></i>
+                    Управление оплатами
+                </h3>
+            </div>
+            <div class="section-body">
+                <div class="link-list">
+                    <div class="link-item">
+                        <a href="{% url 'payment_service:payment_list' %}" class="nav-link">
+                            <div class="nav-icon">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <div class="nav-content">
+                                <div class="nav-title">Оплаты</div>
+                                <div class="nav-description">Просмотр всех совершенных платежей</div>
+                            </div>
+                            <i class="fas fa-chevron-right nav-arrow"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Задолженности -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Управление задолженностями
+                </h3>
+            </div>
+            <div class="section-body">
+                <div class="link-list">
+                    <div class="link-item">
+                        <a href="{% url 'payment_service:debt_list' %}" class="nav-link">
+                            <div class="nav-icon">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <div class="nav-content">
+                                <div class="nav-title">Задолженности</div>
+                                <div class="nav-description">Просмотр задолженностей по квартирам</div>
+                            </div>
+                            <i class="fas fa-chevron-right nav-arrow"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Тарифы -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-chart-line"></i>
+                    Управление тарифами
+                </h3>
+            </div>
+            <div class="section-body">
+                <div class="link-list">
+                    <div class="link-item">
+                        <a href="{% url 'payment_service:tariff_list' %}" class="nav-link">
+                            <div class="nav-icon">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <div class="nav-content">
+                                <div class="nav-title">Тарифы</div>
+                                <div class="nav-description">Просмотр и управление тарифами</div>
+                            </div>
+                            <i class="fas fa-chevron-right nav-arrow"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- 
+    <div class="exit-section">
+        <a href="/" class="exit-link">
+            <i class="fas fa-sign-out-alt"></i>
+            Выйти из панели
+        </a>
+    </div> -->
 </div>
-<br>
-
-<br>
-<p><a href="/">← Выйти из панели</a></p>
 {% endblock %}

@@ -4,108 +4,383 @@
 {% block title %}Мои начисления{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="card">
-        <div class="card-header">
-            <h3>Мои начисления</h3>
-            <a href="{% url 'user_profile:profile' username=request.user.username %}" class="btn btn-secondary btn-sm">
-                ← Назад в профиль
-            </a>
-        </div>
-        
-        <div class="card-body">
-            {% if charges %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>Адрес</th>
-                                <th>Период</th>
-                                <th>Тариф</th>
-                                <th>Начислено</th>
-                                <th>Оплачено</th>
-                                <th>Остаток</th>
-                                <th>Статус</th>
-                            </thead>
-                        </thead>
-                        <tbody>
-                            {% for charge in charges %}
-                            <tr>
-                                <td>{{ charge.housing_address }}</td>
-                                <td>{{ charge.period|date:"F Y" }}</td>
-                                <td>
-                                    {{ charge.tariff.name }}<br>
-                                    <small class="text-muted">{{ charge.tariff.rate_per_unit }} руб./{{ charge.tariff.get_unit_display }}</small>
-                                </td>
-                                <td>{{ charge.original_amount }} руб.</td>
-                                <td>{{ charge.paid_amount }} руб.</td>
-                                <td class="{% if charge.remaining > 0 %}text-danger{% endif %}">
-                                    {{ charge.remaining }} руб.
-                                </td>
-                                <td>
-                                    {% if charge.is_paid %}
-                                        <span class="badge badge-success">Оплачено</span>
-                                    {% elif charge.paid_amount > 0 %}
-                                        <span class="badge badge-warning">Частично</span>
-                                    {% else %}
-                                        <span class="badge badge-danger">Не оплачено</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Пагинация -->
-                {% if is_paginated %}
-                <div class="pagination">
-                    {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}">←</a>
-                    {% endif %}
-                    
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <span class="current">{{ num }}</span>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <a href="?page={{ num }}">{{ num }}</a>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}">→</a>
-                    {% endif %}
-                </div>
-                {% endif %}
-                
-            {% else %}
-                <div class="alert alert-info text-center">
-                    <i class="fas fa-receipt fa-3x mb-3"></i>
-                    <p>У вас нет начислений</p>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
 <style>
-    .pagination {
-        margin-top: 20px;
-        display: flex;
-        gap: 5px;
-        justify-content: center;
+    .charges-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
     }
-    .pagination a, .pagination span {
-        padding: 8px 12px;
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        background: white;
         border: 1px solid #ddd;
-        border-radius: 4px;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+        transform: translateY(-1px);
+    }
+    
+    /* Карточка таблицы */
+    .table-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .table-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .table-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-header i {
+        color: #28a745;
+    }
+    
+    .total-badge {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        padding: 0 24px 24px 24px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 900px;
+    }
+    
+    th {
+        text-align: left;
+        padding: 16px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    td {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+    
+    tr:hover td {
+        background: #f8f9fa;
+    }
+    
+    .address-cell {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .period-cell {
+        font-weight: 500;
+        color: #666;
+    }
+    
+    .tariff-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .tariff-name {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .tariff-rate {
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .amount-cell {
+        font-weight: 600;
+    }
+    
+    .amount-positive {
+        color: #28a745;
+    }
+    
+    .amount-negative {
+        color: #dc3545;
+    }
+    
+    .amount-neutral {
+        color: #666;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    /* Пагинация */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 20px 24px;
+        border-top: 1px solid #e0e0e0;
+        background: #f8f9fa;
+    }
+    
+    .pagination a, .pagination span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 8px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
         text-decoration: none;
         color: #007bff;
+        font-size: 14px;
+        transition: all 0.2s;
     }
+    
+    .pagination a:hover {
+        background: #e7f3ff;
+        border-color: #007bff;
+        transform: translateY(-1px);
+    }
+    
     .pagination .current {
         background: #007bff;
         color: white;
         border-color: #007bff;
     }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+    
+    .empty-state .text-muted {
+        font-size: 14px;
+        color: #aaa;
+    }
+    
+    @media (max-width: 768px) {
+        .charges-container {
+            padding: 16px;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        th, td {
+            padding: 12px;
+        }
+    }
 </style>
+
+<div class="charges-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-receipt" style="color: #007bff;"></i>
+            Мои начисления
+        </h1>
+        <a href="{% url 'user_profile:profile' username=request.user.username %}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Вернуться в профиль
+        </a>
+    </div>
+
+    <!-- Таблица начислений -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3>
+                <i class="fas fa-list"></i>
+                Список начислений
+            </h3>
+            <span class="total-badge">
+                <i class="fas fa-receipt"></i>
+                Всего: {{ charges|length }} записей
+            </span>
+        </div>
+        
+        {% if charges %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Адрес</th>
+                        <th>Период</th>
+                        <th>Тариф</th>
+                        <th>Начислено (₽)</th>
+                        <th>Оплачено (₽)</th>
+                        <th>Остаток (₽)</th>
+                        <th>Статус</th>
+                    </thead>
+                    <tbody>
+                        {% for charge in charges %}
+                        <tr>
+                            <td class="address-cell">{{ charge.housing_address }}</td>
+                            <td class="period-cell">{{ charge.period|date:"F Y" }}</td>
+                            <td>
+                                <div class="tariff-info">
+                                    <span class="tariff-name">{{ charge.tariff.name }}</span>
+                                    <span class="tariff-rate">
+                                        {{ charge.tariff.rate_per_unit }} руб./{{ charge.tariff.get_unit_display }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="amount-cell amount-positive">{{ charge.original_amount|floatformat:2 }}</td>
+                            <td class="amount-cell amount-positive">{{ charge.paid_amount|floatformat:2 }}</td>
+                            <td class="amount-cell {% if charge.remaining > 0 %}amount-negative{% else %}amount-positive{% endif %}">
+                                {{ charge.remaining|floatformat:2 }}
+                            </td>
+                            <td>
+                                {% if charge.is_paid %}
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-check-circle"></i> Оплачено
+                                    </span>
+                                {% elif charge.paid_amount > 0 %}
+                                    <span class="badge badge-warning">
+                                        <i class="fas fa-clock"></i> Частично
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-danger">
+                                        <i class="fas fa-times-circle"></i> Не оплачено
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Пагинация -->
+            {% if is_paginated %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <span class="current">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-receipt"></i>
+            <p>Нет начислений</p>
+            <p class="text-muted">
+                У вас пока нет начислений за услуги
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

@@ -197,7 +197,7 @@
     }
     
     .housing-header i {
-        color: #28a745;
+        color: #007bff;
     }
     
     .housing-body {
@@ -632,20 +632,138 @@
         </div>
     </div>
 
-    <div class="action-buttons" style="margin-top: 20px;">
-        <a href="{% url 'user_profile:user_charges' %}" class="btn-primary">
-            <i class="fas fa-receipt"></i>
-            Мои начисления
-        </a>
-        <a href="{% url 'user_profile:user_payments' %}" class="btn-secondary">
-            <i class="fas fa-credit-card"></i>
-            Мои платежи
-        </a>
-        <a href="{% url 'user_profile:user_debt' %}" class="btn-primary">
-            <i class="fas fa-exclamation-triangle"></i>
-            Мои долги
-        </a>
+    <!-- Вместо кнопок внизу -->
+    <div class="nav-cards">
+        <div class="nav-card">
+            {% if is_staff %}
+            <a href="/payment_service/charges/?search={{ user_profile.user.username }}" class="nav-card-link">
+            {% else %}
+            <a href="{% url 'user_profile:user_charges' %}" class="nav-card-link">
+            {% endif %}
+                <div class="nav-card-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div class="nav-card-content">
+                    <h4>Начисления</h4>
+                    <p>Просмотр всех начислений за услуги</p>
+                </div>
+                <i class="fas fa-chevron-right nav-card-arrow"></i>
+            </a>
+        </div>        
+        
+        <div class="nav-card">
+            {% if is_staff %}
+            <a href="/payment_service/payments/?search={{ user_profile.user.username }}" class="nav-card-link">
+            {% else %}
+            <a href="{% url 'user_profile:user_payments' %}" class="nav-card-link">
+            {% endif %}
+                <div class="nav-card-icon" style="background: #e7f3ff; color: #007bff;">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="nav-card-content">
+                    <h4>Платежи</h4>
+                    <p>История всех совершенных платежей</p>
+                </div>
+                <i class="fas fa-chevron-right nav-card-arrow"></i>
+            </a>
+        </div>
+        
+        <div class="nav-card">
+            {% if is_staff %}
+            <a href="/payment_service/debts/?search={{ user_profile.user.username }}" class="nav-card-link">
+            {% else %}
+            <a href="{% url 'user_profile:user_debt' %}" class="nav-card-link">
+            {% endif %}
+                <div class="nav-card-icon" style="background: #fff3cd; color: #856404;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="nav-card-content">
+                    <h4>Задолженности</h4>
+                    <p>Текущая задолженность по услугам</p>
+                </div>
+                <i class="fas fa-chevron-right nav-card-arrow"></i>
+            </a>
+        </div>
     </div>
+
+    <style>
+        .nav-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+        
+        .nav-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        
+        .nav-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+        
+        .nav-card-link {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .nav-card-icon {
+            width: 56px;
+            height: 56px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        
+        .nav-card-content {
+            flex: 1;
+        }
+        
+        .nav-card-content h4 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .nav-card-content p {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        .nav-card-arrow {
+            color: #ccc;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .nav-card:hover .nav-card-arrow {
+            color: #007bff;
+            transform: translateX(4px);
+        }
+        
+        @media (max-width: 768px) {
+            .nav-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
     {% endif %}
 </div>
 

@@ -763,7 +763,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <a href="{% url 'profile' username=current_owner.username %}" class="btn-secondary" style="padding: 8px 16px;">
+                <a href="{% url 'user_profile:profile' username=current_owner.username %}" class="btn-secondary" style="padding: 8px 16px;">
                     <i class="fas fa-eye"></i>
                     Профиль
                 </a>

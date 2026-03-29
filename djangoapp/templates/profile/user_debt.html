@@ -4,75 +4,411 @@
 {% block title %}Мои задолженности{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="card">
-        <div class="card-header">
-            <h3>Мои задолженности</h3>
-            <a href="{% url 'user_profile:profile' username=request.user.username %}" class="btn btn-secondary btn-sm">
-                ← Назад в профиль
-            </a>
-        </div>
+<style>
+    .debt-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        background: white;
+        border: 1px solid #ddd;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+        transform: translateY(-1px);
+    }
+    
+    /* Alert сообщения */
+    .alert-warning-custom {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #856404;
+    }
+    
+    .alert-warning-custom i {
+        font-size: 24px;
+    }
+    
+    .alert-success-custom {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 10px;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #155724;
+    }
+    
+    .alert-success-custom i {
+        font-size: 24px;
+    }
+    
+    /* Карточка общей суммы */
+    .total-debt-card {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        box-shadow: 0 4px 12px rgba(220,53,69,0.2);
+    }
+    
+    .total-debt-info h5 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        font-weight: 500;
+        opacity: 0.9;
+    }
+    
+    .total-debt-info h2 {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 700;
+    }
+    
+    .total-debt-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+    }
+    
+    /* Карточка таблицы */
+    .table-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .table-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .table-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-header i {
+        color: #dc3545;
+    }
+    
+    .total-badge {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        padding: 0 24px 24px 24px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+    
+    th {
+        text-align: left;
+        padding: 16px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    td {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+    
+    tr:hover td {
+        background: #f8f9fa;
+    }
+    
+    .overdue-row td {
+        background: #fff5f5;
+    }
+    
+    .address-cell {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .period-cell {
+        font-weight: 500;
+        color: #666;
+    }
+    
+    .amount-cell {
+        font-weight: 700;
+        font-size: 16px;
+        color: #dc3545;
+    }
+    
+    .due-date {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .due-date-main {
+        font-weight: 500;
+        color: #666;
+    }
+    
+    .overdue-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        width: fit-content;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+    
+    .empty-state .text-muted {
+        font-size: 14px;
+        color: #aaa;
+    }
+    
+    @media (max-width: 768px) {
+        .debt-container {
+            padding: 16px;
+        }
         
-        <div class="card-body">
-            {% if has_debt %}
-                <div class="alert alert-warning">
-                    <strong>Внимание!</strong> У вас есть непогашенные задолженности.
-                </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="card bg-danger text-white">
-                            <div class="card-body">
-                                <h5>Общая сумма задолженности</h5>
-                                <h2>{{ total_debt|floatformat:2 }} руб.</h2>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>Адрес</th>
-                                <th>Период</th>
-                                <th>Сумма долга</th>
-                                <th>Срок оплаты</th>
-                                <th>Статус</th>
-                            </thead>
+        .total-debt-card {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        th, td {
+            padding: 12px;
+        }
+        
+        .amount-cell {
+            font-size: 14px;
+        }
+    }
+</style>
+
+<div class="debt-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i>
+            Мои задолженности
+        </h1>
+        <a href="{% url 'user_profile:profile' username=request.user.username %}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Вернуться в профиль
+        </a>
+    </div>
+
+    {% if has_debt %}
+        <!-- Предупреждение -->
+        <div class="alert-warning-custom">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span><strong>Внимание!</strong> У вас есть непогашенные задолженности. Рекомендуем произвести оплату в ближайшее время.</span>
+        </div>
+
+        <!-- Карточка общей суммы -->
+        <div class="total-debt-card">
+            <div class="total-debt-info">
+                <h5>Общая сумма задолженности</h5>
+                <h2>{{ total_debt|floatformat:2 }} ₽</h2>
+            </div>
+            <div class="total-debt-icon">
+                <i class="fas fa-credit-card"></i>
+            </div>
+        </div>
+
+        <!-- Таблица задолженностей -->
+        <div class="table-card">
+            <div class="table-header">
+                <h3>
+                    <i class="fas fa-list"></i>
+                    Детали задолженностей
+                </h3>
+                <span class="total-badge">
+                    <i class="fas fa-receipt"></i>
+                    Всего: {{ debts|length }} записей
+                </span>
+            </div>
+            
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Адрес</th>
+                            <th>Период</th>
+                            <th>Сумма долга</th>
+                            <th>Срок оплаты</th>
+                            <th>Статус</th>
                         </thead>
                         <tbody>
                             {% for debt in debts %}
-                            <tr {% if debt.is_overdue %}class="table-danger"{% endif %}>
-                                <td>{{ debt.address }}</td>
-                                <td>{{ debt.period|date:"F Y" }}</td>
-                                <td><strong class="text-danger">{{ debt.amount|floatformat:2 }} руб.</strong></td>
+                            <tr {% if debt.is_overdue %}class="overdue-row"{% endif %}>
+                                <td class="address-cell">{{ debt.address }}</td>
+                                <td class="period-cell">{{ debt.period|date:"F Y" }}</td>
+                                <td class="amount-cell">{{ debt.amount|floatformat:2 }} ₽</td>
                                 <td>
-                                    {{ debt.due_date|date:"d.m.Y" }}
-                                    {% if debt.is_overdue %}
-                                        <br><small class="text-danger">Просрочено {{ debt.overdue_days }} дней</small>
-                                    {% endif %}
+                                    <div class="due-date">
+                                        <span class="due-date-main">{{ debt.due_date|date:"d.m.Y" }}</span>
+                                        {% if debt.is_overdue %}
+                                            <span class="overdue-badge">
+                                                <i class="fas fa-clock"></i>
+                                                Просрочено {{ debt.overdue_days }} дней
+                                            </span>
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td>
                                     {% if debt.is_overdue %}
-                                        <span class="badge badge-danger">Просрочено</span>
+                                        <span class="badge badge-danger">
+                                            <i class="fas fa-exclamation-circle"></i> Просрочено
+                                        </span>
                                     {% else %}
-                                        <span class="badge badge-warning">Ожидает оплаты</span>
+                                        <span class="badge badge-warning">
+                                            <i class="fas fa-clock"></i> Ожидает оплаты
+                                        </span>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                </div>
-                
-            {% else %}
-                <div class="alert alert-success text-center">
-                    <i class="fas fa-check-circle fa-3x mb-3"></i>
-                    <p><strong>Отлично!</strong> У вас нет задолженностей.</p>
-                </div>
-            {% endif %}
+            </div>
         </div>
-    </div>
+        
+    {% else %}
+        <!-- Нет задолженностей -->
+        <div class="table-card">
+            <div class="empty-state">
+                <i class="fas fa-check-circle" style="color: #28a745; opacity: 1;"></i>
+                <p><strong>Отлично!</strong> У вас нет задолженностей</p>
+                <p class="text-muted">
+                    Все платежи выполнены
+                </p>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

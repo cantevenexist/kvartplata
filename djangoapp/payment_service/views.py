@@ -20,11 +20,53 @@ class TariffListView(LoginRequiredMixin, View):
         if not (self.request.user.is_superuser or self.request.user.is_staff):
             raise Http404('Нет доступа')
 
+        # Получаем параметры из GET запроса
+        search_query = request.GET.get('search', '')
+        status = request.GET.get('status', 'all')
+        sort_by = request.GET.get('sort', '-created_at')
+        
+        # Базовый запрос
         tariffs = Tariff.objects.all()
-        return render(request, 'payment_service/tariff_list.html', {
+        
+        # Поиск по названию
+        if search_query:
+            tariffs = tariffs.filter(name__icontains=search_query)
+        
+        # Фильтрация по статусу
+        now = timezone.now().date()
+        if status == 'active':
+            tariffs = tariffs.filter(
+                is_active=True,
+                valid_to__isnull=True
+            ) | tariffs.filter(
+                is_active=True,
+                valid_to__gte=now
+            )
+        elif status == 'archived':
+            tariffs = tariffs.filter(is_active=False)
+        elif status == 'expired':
+            tariffs = tariffs.filter(
+                is_active=True,
+                valid_to__lt=now
+            )
+        
+        # Сортировка
+        allowed_sort_fields = ['name', '-name', 'rate_per_unit', '-rate_per_unit', 
+                               'unit', '-unit', 'created_at', '-created_at']
+        if sort_by in allowed_sort_fields:
+            tariffs = tariffs.order_by(sort_by)
+        else:
+            tariffs = tariffs.order_by('-created_at')
+        
+        context = {
             'tariffs': tariffs,
-            'now': timezone.now().date(),
-        })
+            'now': now,
+            'search_query': search_query,
+            'status': status,
+            'sort_by': sort_by,
+        }
+        
+        return render(request, 'payment_service/tariff_list.html', context)
 
 class TariffCreateView(LoginRequiredMixin, AdminRequiredMixin, View):
     def get(self, request):

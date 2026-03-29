@@ -1,357 +1,647 @@
 {% extends 'layout.html' %}
 {% load static %}
 
+{% block title %}Регистрация оплаты{% endblock %}
+
 {% block content %}
 <style>
-    .search-form {
-        margin-bottom: 20px;
+    .payment-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    
+    .page-header {
         display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        background: white;
+        border: 1px solid #ddd;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+        transform: translateY(-1px);
+    }
+    
+    /* Карточки */
+    .form-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .card-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .card-header i {
+        color: #007bff;
+    }
+    
+    .card-body {
+        padding: 24px;
+    }
+    
+    /* Сообщения */
+    .messages {
+        margin-bottom: 24px;
+    }
+    
+    .alert {
+        padding: 14px 18px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
         gap: 10px;
     }
-    .search-form input {
-        flex: 1;
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+    
+    .alert-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
     }
-    .search-form button {
-        padding: 8px 15px;
+    
+    .alert-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    /* Поиск */
+    .search-section {
+        margin-bottom: 24px;
+    }
+    
+    .search-form {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .search-input {
+        flex: 1;
+        padding: 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    .btn-search {
         background: #007bff;
         color: white;
         border: none;
-        border-radius: 4px;
+        padding: 12px 24px;
+        border-radius: 8px;
         cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
     }
-    .search-form a {
-        padding: 8px 15px;
+    
+    .btn-search:hover {
+        background: #0056b3;
+        transform: translateY(-1px);
+    }
+    
+    .btn-reset {
         background: #6c757d;
         color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         text-decoration: none;
-        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .btn-reset:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
     }
     
     /* Результаты поиска */
     .results-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 15px;
-        margin-bottom: 30px;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
     }
+    
     .result-card {
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 15px;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 16px;
         cursor: pointer;
         transition: all 0.2s;
     }
+    
     .result-card:hover {
-        background: #f5f5f5;
+        background: #f8f9fa;
         border-color: #007bff;
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
+    
     .result-card.selected {
-        background: #e3f2fd;
+        background: #e7f3ff;
         border-color: #007bff;
+        border-left: 3px solid #007bff;
     }
-    .result-card h4 {
-        margin: 0 0 10px 0;
+    
+    .result-address {
+        font-size: 16px;
+        font-weight: 600;
         color: #333;
+        margin-bottom: 12px;
     }
-    .debt-badge {
+    
+    .result-details {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .badge-debt {
         background: #dc3545;
         color: white;
-        padding: 3px 8px;
-        border-radius: 12px;
+        padding: 3px 10px;
+        border-radius: 20px;
         font-size: 12px;
         display: inline-block;
     }
-    .partial-badge {
-        background: #ffc107;
-        color: #000;
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        display: inline-block;
-    }
-    .prepayment-badge {
+    
+    .badge-prepayment {
         background: #28a745;
         color: white;
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        display: inline-block;
-    }
-    .overdue-badge {
-        background: #dc3545;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        display: inline-block;
-    }
-    .waiting-badge {
-        background: #ffc107;
-        color: #000;
-        padding: 3px 8px;
-        border-radius: 12px;
+        padding: 3px 10px;
+        border-radius: 20px;
         font-size: 12px;
         display: inline-block;
     }
     
     /* Выбранная квартира */
-    .selected-info {
-        background: #e8f5e8;
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 20px;
-        border-left: 4px solid #28a745;
+    .selected-housing {
+        background: linear-gradient(135deg, #e7f3ff 0%, #d4e5ff 100%);
+        border: 1px solid #cce5ff;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 24px;
     }
+    
     .prepayment-info {
         background: #d4edda;
-        padding: 10px;
-        border-radius: 4px;
-        margin: 10px 0;
         border-left: 4px solid #28a745;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin: 12px 0;
     }
     
     /* Таблица начислений */
+    .table-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .table-header {
+        padding: 16px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .table-header h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        padding: 0 20px 20px 20px;
+    }
+    
     table {
         width: 100%;
         border-collapse: collapse;
-        margin: 20px 0;
+        min-width: 700px;
     }
+    
     th {
-        background: #343a40;
-        color: white;
-        padding: 10px;
         text-align: left;
+        padding: 14px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
     }
+    
     td {
-        padding: 10px;
-        border-bottom: 1px solid #ddd;
+        padding: 14px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
     }
+    
+    .overdue-row {
+        background: #fff5f5;
+    }
+    
     .original-amount {
         text-decoration: line-through;
         color: #999;
-        font-size: 12px;
+        font-size: 11px;
+    }
+    
+    /* Бейджи */
+    .badge-overdue {
+        background: #dc3545;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+    }
+    
+    .badge-waiting {
+        background: #ffc107;
+        color: #333;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+    }
+    
+    .total-info {
+        background: #f8f9fa;
+        padding: 16px;
+        border-radius: 10px;
+        margin: 16px 0;
+    }
+    
+    .info-box {
+        background: #e7f3ff;
+        padding: 14px;
+        border-radius: 10px;
+        margin: 16px 16px;
+        border-left: 4px solid #007bff;
     }
     
     /* Форма */
     .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 20px;
     }
+    
     .form-group label {
         display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
     }
-    .form-group input, .form-group select, .form-group textarea {
+    
+    .required:after {
+        content: "*";
+        color: #dc3545;
+        margin-left: 4px;
+    }
+    
+    .form-control {
         width: 100%;
-        padding: 8px;
+        padding: 10px 12px;
         border: 1px solid #ddd;
-        border-radius: 4px;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
     }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+    }
+    
     .btn-submit {
-        background: #28a745;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
         width: 100%;
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 14px 24px;
+        border-radius: 8px;
+        cursor: pointer;
         font-size: 16px;
-        transition: background 0.2s;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
     }
+    
     .btn-submit:hover {
-        background: #218838;
-    }
-    .btn-submit:disabled {
-        background: #ccc;
-        cursor: not-allowed;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     
-    /* Информация о сумме */
-    .total-info {
-        background: #f8f9fa;
-        padding: 10px;
-        border-radius: 4px;
-        margin: 10px 0;
-    }
-    .info-box {
-        background: #e7f3ff;
-        padding: 12px;
-        border-radius: 4px;
-        margin: 15px 0;
-        border-left: 4px solid #007bff;
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #999;
     }
     
-    /* Текстовые стили */
-    .text-success { color: #28a745; }
-    .text-danger { color: #dc3545; }
-    .text-muted { color: #6c757d; }
-    .text-warning { color: #ffc107; }
-    .font-weight-bold { font-weight: bold; }
+    @media (max-width: 768px) {
+        .payment-container {
+            padding: 16px;
+        }
+        
+        .search-form {
+            flex-direction: column;
+        }
+        
+        .results-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
-<div class="container-fluid">
-    <div class="card">
-        <div class="card-header">
-            <h3>Регистрация оплаты</h3>
-        </div>
-        
-        <div class="card-body">
-            <!-- Сообщения -->
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+<div class="payment-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-credit-card" style="color: #007bff;"></i>
+            Регистрация оплаты
+        </h1>
+        <a href="{% url 'payment_service:payment_list' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            К списку платежей
+        </a>
+    </div>
 
-            <!-- Поиск квартиры -->
-            <h4>Поиск квартиры</h4>
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="form-card">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-search"></i>
+                Поиск квартиры
+            </h3>
+        </div>
+        <div class="card-body">
             <form method="get" class="search-form">
-                <input type="text" name="search" value="{{ search_query }}" 
+                <input type="text" name="search" class="search-input" 
+                       value="{{ search_query }}" 
                        placeholder="Поиск по адресу или владельцу...">
-                <button type="submit">Найти</button>
+                <button type="submit" class="btn-search">
+                    <i class="fas fa-search"></i> Найти
+                </button>
                 {% if search_query %}
-                    <a href="{% url 'payment_service:payment_create' %}">Сброс</a>
+                    <a href="{% url 'payment_service:payment_create' %}" class="btn-reset">
+                        <i class="fas fa-times"></i> Сброс
+                    </a>
                 {% endif %}
             </form>
 
-            <!-- Результаты поиска -->
             {% if search_results %}
-                <h4>Результаты поиска</h4>
+            <div style="margin-top: 20px;">
                 <div class="results-grid">
                     {% for item in search_results %}
                     <div class="result-card {% if housing_id|add:'0' == item.id %}selected{% endif %}"
                          onclick="window.location.href='?housing_id={{ item.id }}{% if search_query %}&search={{ search_query }}{% endif %}'">
-                        <h4>{{ item.address }}</h4>
-                        <p><strong>Владелец:</strong> {{ item.owner_name }}</p>
-                        {% if item.prepayment > 0 %}
-                            <p><strong class="text-success">Аванс: {{ item.prepayment }} руб.</strong></p>
-                        {% endif %}
-                        <p><strong>Долг:</strong> {{ item.total_debt }} руб.</p>
+                        <div class="result-address">
+                            <i class="fas fa-home"></i> {{ item.address }}
+                        </div>
+                        <div class="result-details">
+                            <span><i class="fas fa-user"></i> Владелец: {{ item.owner_name }}</span>
+                            {% if item.prepayment > 0 %}
+                                <span><span class="badge-prepayment">✓ Аванс: {{ item.prepayment }} руб.</span></span>
+                            {% endif %}
+                            <span><span class="badge-debt">Долг: {{ item.total_debt }} руб.</span></span>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
+            </div>
             {% endif %}
+        </div>
+    </div>
 
-            <!-- Форма оплаты -->
-            {% if selected_housing %}
-            <form method="post" id="paymentForm">
-                {% csrf_token %}
-                <input type="hidden" name="housing_id" value="{{ housing_id }}">
-
-                <div class="selected-info">
-                    <h4>Выбранная квартира</h4>
-                    <p><strong>Адрес:</strong> {{ selected_housing.address }}</p>
-                    <p><strong>Владелец:</strong> 
-                        {% if selected_housing.owner %}
-                            {{ selected_housing.owner.profile.full_name|default:selected_housing.owner.username }}
-                        {% else %}
-                            Нет владельца
-                        {% endif %}
-                    </p>
-                    
-                    {% if prepayment > 0 %}
-                    <div class="prepayment-info">
-                        <strong class="text-success">Аванс (переплата): {{ prepayment }} руб.</strong><br>
-                        <small>✓ Будет автоматически списан при оплате</small>
-                    </div>
+    {% if selected_housing %}
+    <div class="form-card">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-building"></i>
+                Информация о квартире
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="selected-housing">
+                <p><strong><i class="fas fa-map-marker-alt"></i> Адрес:</strong> {{ selected_housing.address }}</p>
+                <p><strong><i class="fas fa-user"></i> Владелец:</strong> 
+                    {% if selected_housing.owner %}
+                        {{ selected_housing.owner.profile.full_name|default:selected_housing.owner.username }}
+                    {% else %}
+                        Нет владельца
                     {% endif %}
-                    
-                    <p><strong>Текущий долг с учетом аванса:</strong> {{ total_debt }} руб.</p>
+                </p>
+                {% if prepayment > 0 %}
+                <div class="prepayment-info">
+                    <strong><i class="fas fa-gift"></i> Аванс (переплата): {{ prepayment }} руб.</strong><br>
+                    <small>✓ Будет автоматически списан при оплате</small>
                 </div>
+                {% endif %}
+                <p><strong><i class="fas fa-chart-line"></i> Текущий долг с учетом аванса:</strong> 
+                    <span class="text-danger font-weight-bold">{{ total_debt }} руб.</span>
+                </p>
+            </div>
 
-                <!-- Неоплаченные начисления -->
-                {% if unpaid_charges %}
-                <h4>Неоплаченные начисления</h4>
+            {% if unpaid_charges %}
+            <div class="table-card">
+                <div class="table-header">
+                    <h4>
+                        <i class="fas fa-receipt"></i>
+                        Неоплаченные начисления
+                    </h4>
+                    <span class="badge-warning" style="background: #ffc107; padding: 4px 12px;">
+                        {{ unpaid_charges|length }} записей
+                    </span>
+                </div>
                 <div class="info-box">
-                    <strong>ℹ️ Информация:</strong> Оплата будет распределена автоматически, начиная с самых старых начислений. 
+                    <i class="fas fa-info-circle"></i>
+                    Оплата будет распределена автоматически, начиная с самых старых начислений.<br>
                     Вы можете оплатить любую сумму, остаток будет зачислен как аванс.
                 </div>
-                
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Период</th>
-                            <th>Тариф</th>
-                            <th>Начислено</th>
-                            <th>Оплачено</th>
-                            <th>Остаток</th>
-                            <th>Статус</th>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Период</th>
+                                <th>Тариф</th>
+                                <th>Начислено</th>
+                                <th>Оплачено</th>
+                                <th>Остаток</th>
+                                <th>Статус</th>
+                            </thead>
                         </thead>
-                    </thead>
-                    <tbody>
-                        {% for charge in unpaid_charges %}
-                        <tr {% if charge.is_overdue %}style="background: #fff3f3;"{% endif %}>
-                            <td><strong>{{ charge.period|date:"F Y" }}</strong></td>
-                            <td>{{ charge.tariff.name }}<br>
-                                <small class="text-muted">{{ charge.tariff.rate_per_unit }} руб./{{ charge.tariff.get_unit_display }}</small>
-                            </td>
-                            <td>
-                                <strong>{{ charge.original_amount }} руб.</strong>
-                                {% if charge.amount != charge.original_amount %}
-                                    <br><small class="original-amount">(текущая: {{ charge.amount }} руб.)</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if charge.paid_amount > 0 %}
-                                    <span class="text-success">{{ charge.paid_amount }} руб.</span>
-                                {% else %}
-                                    <span class="text-muted">0 руб.</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% with remaining=charge.remaining_amount %}
-                                    {% if remaining > 0 %}
-                                        <strong class="text-danger">{{ remaining }} руб.</strong>
-                                    {% else %}
-                                        <span class="text-success">0 руб.</span>
+                        <tbody>
+                            {% for charge in unpaid_charges %}
+                            <tr {% if charge.is_overdue %}class="overdue-row"{% endif %}>
+                                <td><strong>{{ charge.period|date:"F Y" }}</strong></td>
+                                <td>
+                                    {{ charge.tariff.name }}<br>
+                                    <small class="text-muted">{{ charge.tariff.rate_per_unit }} руб./{{ charge.tariff.get_unit_display }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ charge.original_amount }} руб.</strong>
+                                    {% if charge.amount != charge.original_amount %}
+                                        <br><small class="original-amount">(текущая: {{ charge.amount }} руб.)</small>
                                     {% endif %}
-                                {% endwith %}
-                            </td>
-                            <td>
-                                {% if charge.is_overdue %}
-                                    <span class="overdue-badge">Просрочено</span>
-                                {% else %}
-                                    <span class="waiting-badge">Ожидает оплаты</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                </td>
+                                <td>
+                                    {% if charge.paid_amount > 0 %}
+                                        <span class="text-success">{{ charge.paid_amount }} руб.</span>
+                                    {% else %}
+                                        <span class="text-muted">0 руб.</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% with remaining=charge.remaining_amount %}
+                                        {% if remaining > 0 %}
+                                            <strong class="text-danger">{{ remaining }} руб.</strong>
+                                        {% else %}
+                                            <span class="text-success">0 руб.</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% if charge.is_overdue %}
+                                        <span class="badge-overdue">Просрочено</span>
+                                    {% else %}
+                                        <span class="badge-waiting">Ожидает оплаты</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
 
                 <div class="total-info">
-                    <strong>📊 Итого к оплате:</strong> 
+                    <strong><i class="fas fa-chart-line"></i> Итого к оплате:</strong> 
                     <span class="text-danger font-weight-bold">{{ total_debt }} руб.</span>
                     {% if prepayment > 0 %}
                         <br><small class="text-success">✓ Аванс {{ prepayment }} руб. будет списан автоматически</small>
                     {% endif %}
                 </div>
-                {% endif %}
+            </div>
+            {% endif %}
 
-                <!-- Данные платежа -->
-                <h4>Данные платежа</h4>
+            <form method="post" id="paymentForm">
+                {% csrf_token %}
+                <input type="hidden" name="housing_id" value="{{ housing_id }}">
                 
+                <h4 style="margin-bottom: 20px;">
+                    <i class="fas fa-credit-card"></i>
+                    Данные платежа
+                </h4>
+
                 <div class="form-group">
-                    <label>Сумма платежа *</label>
+                    <label class="required">Сумма платежа</label>
                     <input type="number" name="amount" step="0.01" min="0.01" required 
-                           class="form-control" id="paymentAmount" onchange="updatePreview()" onkeyup="updatePreview()">
+                           class="form-control" id="paymentAmount" onchange="updatePreview()" onkeyup="updatePreview()"
+                           placeholder="Введите сумму в рублях">
                     <small class="text-muted">Введите сумму, которую хотите оплатить</small>
                 </div>
 
                 <div id="paymentPreview" class="total-info" style="display: none;">
-                    <strong>💰 Предварительный расчет:</strong><br>
+                    <strong><i class="fas fa-calculator"></i> Предварительный расчет:</strong><br>
                     <span id="previewText"></span>
                 </div>
 
                 <div class="form-group">
-                    <label>Способ оплаты *</label>
+                    <label class="required">Способ оплаты</label>
                     <select name="payment_method" class="form-control" required>
                         <option value="">-- Выберите способ --</option>
                         {% for code, name in payment_methods %}
@@ -361,7 +651,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Дата и время платежа *</label>
+                    <label class="required">Дата и время платежа</label>
                     <input type="datetime-local" name="payment_date" class="form-control" 
                            value="{{ today|date:'Y-m-d\TH:i' }}" required>
                 </div>
@@ -373,17 +663,13 @@
                 </div>
 
                 <button type="submit" class="btn-submit" id="submit-btn">
+                    <i class="fas fa-save"></i>
                     Зарегистрировать платеж
                 </button>
             </form>
-            {% endif %}
-
-            <!-- Ссылка на список платежей -->
-            <p style="margin-top: 20px;">
-                <a href="{% url 'payment_service:payment_list' %}">← К списку платежей</a>
-            </p>
         </div>
     </div>
+    {% endif %}
 </div>
 
 <script>
@@ -426,7 +712,6 @@ function updatePreview() {
     }
 }
 
-// Инициализация
 document.addEventListener('DOMContentLoaded', function() {
     updatePreview();
 });

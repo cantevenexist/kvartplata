@@ -1,57 +1,446 @@
-{% extends "account/base_entrance.html" %}
+{% extends "layout.html" %}
+{% load static %}
 {% load i18n %}
 {% load allauth account %}
-{% block head_title %}
-    {% trans "Sign In" %}
-{% endblock head_title %}
+
+{% block title %}{% trans "Вход в систему" %}{% endblock %}
+
 {% block content %}
-    {% element h1 %}
-        {% trans "Sign In" %}
-    {% endelement %}
-    {% if not SOCIALACCOUNT_ONLY %}
-        {% setvar link %}
-            <a href="{{ signup_url }}">
-            {% endsetvar %}
-            {% setvar end_link %}
-            </a>
-        {% endsetvar %}
-        {% element p %}
-            {% blocktranslate %}If you have not created an account yet, then please {{ link }}sign up{{ end_link }} first.{% endblocktranslate %}
-        {% endelement %}
-        {% url 'account_login' as login_url %}
-        {% element form form=form method="post" action=login_url tags="entrance,login" %}
-            {% slot body %}
-                {% csrf_token %}
-                {% element fields form=form unlabeled=True %}
-                {% endelement %}
-                {{ redirect_field }}
-            {% endslot %}
-            {% slot actions %}
-                {% element button type="submit" tags="prominent,login" %}
-                    {% trans "Sign In" %}
-                {% endelement %}
-            {% endslot %}
-        {% endelement %}
-    {% endif %}
-    {% if LOGIN_BY_CODE_ENABLED or PASSKEY_LOGIN_ENABLED %}
-        {% element hr %}
-        {% endelement %}
-        {% element button_group vertical=True %}
-            {% if PASSKEY_LOGIN_ENABLED %}
-                {% element button type="submit" form="mfa_login" id="passkey_login" tags="prominent,login,outline,primary" %}
-                    {% trans "Sign in with a passkey" %}
-                {% endelement %}
+<style>
+    .login-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 48px 24px;
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .login-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        width: 100%;
+    }
+    
+    .card-header {
+        padding: 28px 32px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+        text-align: center;
+    }
+    
+    .card-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .card-header i {
+        color: #007bff;
+        font-size: 28px;
+    }
+    
+    .card-body {
+        padding: 32px;
+    }
+    
+    /* Сообщения об ошибках */
+    .error-messages {
+        margin-bottom: 24px;
+    }
+    
+    .error-message {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 14px 18px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        color: #721c24;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .error-message i {
+        font-size: 18px;
+        color: #dc3545;
+    }
+    
+    .error-message ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    
+    .error-message li {
+        margin: 4px 0;
+    }
+    
+    .non-field-error {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 14px 18px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #721c24;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .field-error {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .info-message {
+        background: #e7f3ff;
+        border-left: 4px solid #007bff;
+        padding: 14px 18px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-size: 14px;
+        color: #004085;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .info-message i {
+        font-size: 18px;
+    }
+    
+    .info-message a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .info-message a:hover {
+        text-decoration: underline;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .form-group label .required {
+        color: #dc3545;
+        margin-left: 4px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    .form-control.is-invalid {
+        border-color: #dc3545;
+    }
+    
+    .form-control.is-invalid:focus {
+        box-shadow: 0 0 0 3px rgba(220,53,69,0.1);
+    }
+    
+    .form-actions {
+        margin-top: 24px;
+    }
+    
+    .btn-login {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    
+    .btn-login:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+    }
+    
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 24px 0;
+    }
+    
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .divider span {
+        padding: 0 16px;
+        color: #666;
+        font-size: 13px;
+    }
+    
+    .alternative-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .btn-alternative {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+        width: 100%;
+    }
+    
+    .btn-alternative:hover {
+        background: #f8f9fa;
+        transform: translateY(-1px);
+        border-color: #007bff;
+    }
+    
+    .btn-alternative i {
+        color: #6c757d;
+    }
+    
+    .btn-alternative:hover i {
+        color: #007bff;
+    }
+    
+    .signup-link {
+        text-align: center;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e0e0e0;
+        font-size: 14px;
+        color: #666;
+    }
+    
+    .signup-link a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .signup-link a:hover {
+        text-decoration: underline;
+    }
+    
+    @media (max-width: 768px) {
+        .login-container {
+            padding: 24px 16px;
+        }
+        
+        .card-header {
+            padding: 20px 24px;
+        }
+        
+        .card-header h1 {
+            font-size: 24px;
+        }
+        
+        .card-body {
+            padding: 24px;
+        }
+    }
+</style>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="card-header">
+            <h1>
+                <i class="fas fa-sign-in-alt"></i>
+                {% trans "Вход в систему" %}
+            </h1>
+        </div>
+        
+        <div class="card-body">
+            <!-- Отображение ошибок формы -->
+            {% if form.errors %}
+            <div class="error-messages">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>{{ error }}</span>
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+                
+                {% for error in form.non_field_errors %}
+                <div class="non-field-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
-            {% if LOGIN_BY_CODE_ENABLED %}
-                {% element button href=request_login_code_url tags="prominent,login,outline,primary" %}
-                    {% trans "Mail me a sign-in code" %}
-                {% endelement %}
+            
+            <!-- Сообщения из Django messages framework -->
+            {% if messages %}
+            <div class="error-messages">
+                {% for message in messages %}
+                <div class="error-message {% if message.tags %}{{ message.tags }}{% endif %}">
+                    <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
-        {% endelement %}
-    {% endif %}
-{% endblock content %}
-{% block extra_body %}
-    {{ block.super }}
-    {% if PASSKEY_LOGIN_ENABLED %}
-    {% endif %}
+            
+            {% if not SOCIALACCOUNT_ONLY %}
+                
+                {% url 'account_login' as login_url %}
+                <form method="post" action="{{ login_url }}" tags="entrance,login">
+                    {% csrf_token %}
+                    {{ redirect_field }}
+                    
+                    <div class="form-group">
+                        <label for="id_login">
+                            {% trans "Имя пользователя или Email" %}
+                            <span class="required">*</span>
+                        </label>
+                        <input type="text" name="login" id="id_login" class="form-control {% if form.login.errors %}is-invalid{% endif %}" 
+                               placeholder="{% trans 'Введите имя пользователя или email' %}" 
+                               value="{{ form.login.value|default:'' }}"
+                               required>
+                        {% if form.login.errors %}
+                        <div class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {% for error in form.login.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_password">
+                            {% trans "Пароль" %}
+                            <span class="required">*</span>
+                        </label>
+                        <input type="password" name="password" id="id_password" class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
+                               placeholder="{% trans 'Введите пароль' %}" required>
+                        {% if form.password.errors %}
+                        <div class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {% for error in form.password.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-login">
+                            <i class="fas fa-sign-in-alt"></i>
+                            {% trans "Войти" %}
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+            
+            {% if LOGIN_BY_CODE_ENABLED or PASSKEY_LOGIN_ENABLED %}
+                <div class="divider">
+                    <span>{% trans "или" %}</span>
+                </div>
+                
+                <div class="alternative-buttons">
+                    {% if PASSKEY_LOGIN_ENABLED %}
+                        <form id="mfa_login" method="post" action="{% url 'mfa_login' %}">
+                            {% csrf_token %}
+                            <button type="submit" id="passkey_login" class="btn-alternative">
+                                <i class="fas fa-key"></i>
+                                {% trans "Войти с помощью ключа доступа" %}
+                            </button>
+                        </form>
+                    {% endif %}
+                    
+                    {% if LOGIN_BY_CODE_ENABLED %}
+                        <a href="{{ request_login_code_url }}" class="btn-alternative">
+                            <i class="fas fa-envelope"></i>
+                            {% trans "Получить код для входа по email" %}
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Автоматическая очистка ошибок при вводе
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginInput = document.getElementById('id_login');
+        const passwordInput = document.getElementById('id_password');
+        
+        if (loginInput) {
+            loginInput.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const errorDiv = this.parentElement.querySelector('.field-error');
+                if (errorDiv) errorDiv.remove();
+            });
+        }
+        
+        if (passwordInput) {
+            passwordInput.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const errorDiv = this.parentElement.querySelector('.field-error');
+                if (errorDiv) errorDiv.remove();
+            });
+        }
+    });
+</script>
 {% endblock %}

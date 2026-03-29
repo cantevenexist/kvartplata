@@ -14,6 +14,11 @@ from payment_service.models import Tariff, Charge, Payment, Debt
 from housing.models import HousingUnit
 
 
+class MyProfileView(LoginRequiredMixin, View):
+    def get(self, request):
+        return redirect('user_profile:profile', username=request.user.username)
+    
+    
 class ProfileView(View):
     template_name = 'profile/profile.html'
     

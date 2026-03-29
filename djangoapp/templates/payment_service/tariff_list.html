@@ -6,7 +6,7 @@
 {% block content %}
 <style>
     .tariff-container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 24px;
     }
@@ -30,12 +30,12 @@
         gap: 12px;
     }
     
-    .btn-primary {
+    .btn-create {
         background: #007bff;
         color: white;
         border: none;
         padding: 10px 20px;
-        border-radius: 6px;
+        border-radius: 8px;
         cursor: pointer;
         font-size: 14px;
         font-weight: 500;
@@ -43,11 +43,12 @@
         align-items: center;
         gap: 8px;
         text-decoration: none;
-        transition: background-color 0.2s;
+        transition: all 0.2s;
     }
     
-    .btn-primary:hover {
-        background: #0056b3;
+    .btn-create:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     
     .btn-secondary {
@@ -73,20 +74,21 @@
     .filter-card {
         background: white;
         border: 1px solid #e0e0e0;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
         margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     
     .filter-header {
-        padding: 16px 20px;
-        background: #f8f9fa;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
         border-bottom: 1px solid #e0e0e0;
     }
     
     .filter-header h2 {
         margin: 0;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 500;
         color: #333;
         display: flex;
@@ -99,7 +101,7 @@
     }
     
     .filter-body {
-        padding: 20px;
+        padding: 24px;
     }
     
     .filter-form {
@@ -123,11 +125,11 @@
     
     .filter-control {
         width: 100%;
-        padding: 8px 12px;
+        padding: 10px 12px;
         border: 1px solid #ddd;
-        border-radius: 6px;
+        border-radius: 8px;
         font-size: 14px;
-        transition: border-color 0.2s;
+        transition: all 0.2s;
         box-sizing: border-box;
     }
     
@@ -141,37 +143,52 @@
         display: flex;
         align-items: flex-end;
         gap: 8px;
-        min-width: 120px;
     }
     
-    .filter-actions .btn-primary {
-        width: 100%;
-        justify-content: center;
-        padding: 8px 16px;
+    .btn-filter {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        height: 42px;
+    }
+    
+    .btn-filter:hover {
+        background: #0056b3;
+        transform: translateY(-1px);
     }
     
     /* Карточка таблицы */
     .table-card {
         background: white;
         border: 1px solid #e0e0e0;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     
     .table-header {
-        padding: 16px 20px;
-        background: #f8f9fa;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
         border-bottom: 1px solid #e0e0e0;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 16px;
     }
     
     .table-header h3 {
         margin: 0;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 500;
         color: #333;
         display: flex;
@@ -180,24 +197,24 @@
     }
     
     .table-header i {
-        color: #28a745;
+        color: #007bff;
     }
     
     .total-badge {
         background: #e7f3ff;
         color: #007bff;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 13px;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 14px;
         font-weight: 500;
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
     }
     
     .table-wrapper {
         overflow-x: auto;
-        padding: 0 20px 20px 20px;
+        padding: 0 24px 24px 24px;
     }
     
     table {
@@ -208,7 +225,7 @@
     
     th {
         text-align: left;
-        padding: 16px 12px;
+        padding: 16px;
         background: #f8f9fa;
         border-bottom: 2px solid #e0e0e0;
         font-weight: 600;
@@ -218,7 +235,7 @@
     }
     
     td {
-        padding: 16px 12px;
+        padding: 16px;
         border-bottom: 1px solid #f0f0f0;
         font-size: 14px;
         vertical-align: middle;
@@ -228,10 +245,20 @@
         background: #f8f9fa;
     }
     
+    .tariff-name {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .rate-value {
+        font-weight: 600;
+        color: #28a745;
+    }
+    
     /* Бейджи статусов */
     .badge {
         display: inline-block;
-        padding: 4px 10px;
+        padding: 4px 12px;
         border-radius: 20px;
         font-size: 12px;
         font-weight: 500;
@@ -253,15 +280,10 @@
         color: #383d41;
     }
     
-    .badge-info {
-        background: #d1ecf1;
-        color: #0c5460;
-    }
-    
     /* Кнопки действий */
     .action-buttons {
         display: flex;
-        gap: 4px;
+        gap: 8px;
         flex-wrap: wrap;
     }
     
@@ -270,7 +292,7 @@
         border: none;
         width: 32px;
         height: 32px;
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
         font-size: 14px;
         color: #666;
@@ -287,29 +309,22 @@
     
     .action-btn.edit:hover {
         color: #007bff;
+        background: #e7f3ff;
     }
     
     .action-btn.archive:hover {
         color: #ffc107;
+        background: #fff3cd;
     }
     
     .action-btn.restore:hover {
         color: #28a745;
+        background: #d4edda;
     }
     
-    .action-btn.disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    
-    .action-btn.disabled:hover {
-        background: none;
-    }
-    
-    /* Иконка предупреждения */
     .warning-icon {
         color: #856404;
-        margin-left: 6px;
+        margin-left: 4px;
         font-size: 12px;
     }
     
@@ -324,7 +339,7 @@
     }
     
     .empty-state i {
-        font-size: 48px;
+        font-size: 64px;
         margin-bottom: 16px;
         opacity: 0.5;
     }
@@ -336,16 +351,31 @@
     
     .empty-state .text-muted {
         font-size: 14px;
+        color: #aaa;
     }
     
-    /* Информация о сортировке */
     .sort-info {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 8px;
         color: #666;
-        font-size: 12px;
-        margin-top: 8px;
+        font-size: 13px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .info-footer {
+        padding: 16px 24px;
+        border-top: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        font-size: 13px;
+        color: #666;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
     }
     
     @media (max-width: 768px) {
@@ -365,6 +395,11 @@
             width: 100%;
         }
         
+        .btn-filter {
+            width: 100%;
+            justify-content: center;
+        }
+        
         .table-header {
             flex-direction: column;
             align-items: flex-start;
@@ -373,6 +408,11 @@
         .action-buttons {
             justify-content: flex-start;
         }
+        
+        .info-footer {
+            flex-direction: column;
+            text-align: center;
+        }
     }
 </style>
 
@@ -380,14 +420,14 @@
     <div class="page-header">
         <h1>
             <i class="fas fa-chart-line" style="color: #007bff;"></i>
-            {% if user.is_superuser%}
-            Управление тарифами
+            {% if user.is_superuser %}
+                Управление тарифами
             {% else %}
-            Список тарифов
+                Список тарифов
             {% endif %}
         </h1>
-        {% if user.is_superuser%}
-        <a href="{% url 'payment_service:tariff_create' %}" class="btn-primary">
+        {% if user.is_superuser %}
+        <a href="{% url 'payment_service:tariff_create' %}" class="btn-create">
             <i class="fas fa-plus"></i>
             Создать тариф
         </a>
@@ -398,7 +438,7 @@
     <div class="filter-card">
         <div class="filter-header">
             <h2>
-                <i class="fas fa-filter"></i>
+                <i class="fas fa-sliders-h"></i>
                 Фильтры и поиск
             </h2>
         </div>
@@ -406,12 +446,11 @@
             <form method="get" class="filter-form">
                 <div class="filter-group">
                     <label>
-                        <i class="fas fa-search" style="margin-right: 4px;"></i>
+                        <i class="fas fa-search"></i>
                         Поиск по названию
                     </label>
                     <input type="text" 
                            class="filter-control" 
-                           id="search" 
                            name="search" 
                            value="{{ search_query }}" 
                            placeholder="Введите название тарифа">
@@ -422,7 +461,7 @@
                         <i class="fas fa-tag"></i>
                         Статус
                     </label>
-                    <select class="filter-control" id="status" name="status">
+                    <select class="filter-control" name="status">
                         <option value="all" {% if status == 'all' %}selected{% endif %}>Все</option>
                         <option value="active" {% if status == 'active' %}selected{% endif %}>Активные</option>
                         <option value="archived" {% if status == 'archived' %}selected{% endif %}>В архиве</option>
@@ -435,7 +474,7 @@
                         <i class="fas fa-sort-amount-down"></i>
                         Сортировка
                     </label>
-                    <select class="filter-control" id="sort" name="sort">
+                    <select class="filter-control" name="sort">
                         <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Сначала новые</option>
                         <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Сначала старые</option>
                         <option value="name" {% if sort_by == 'name' %}selected{% endif %}>По названию (А-Я)</option>
@@ -446,7 +485,7 @@
                 </div>
                 
                 <div class="filter-actions">
-                    <button type="submit" class="btn-primary">
+                    <button type="submit" class="btn-filter">
                         <i class="fas fa-search"></i>
                         Применить
                     </button>
@@ -456,9 +495,9 @@
             {% if search_query or status != 'all' or sort_by != '-created_at' %}
             <div class="sort-info">
                 <i class="fas fa-info-circle"></i>
-                Применены фильтры. 
-                <a href="{% url 'payment_service:tariff_list' %}" style="color: #007bff; margin-left: 4px;">
-                    Сбросить все
+                <span>Применены фильтры</span>
+                <a href="{% url 'payment_service:tariff_list' %}" style="color: #007bff; text-decoration: none;">
+                    <i class="fas fa-times"></i> Сбросить все
                 </a>
             </div>
             {% endif %}
@@ -488,20 +527,16 @@
                         <th>Статус</th>
                         <th>Действителен до</th>
                         <th>Дата создания</th>
-                        {% if user.is_superuser%}
+                        {% if user.is_superuser %}
                             <th>Действия</th>
                         {% endif %}
-                    </tr>
+                    </thead>
                 </thead>
                 <tbody>
                     {% for tariff in tariffs %}
                     <tr>
-                        <td>
-                            <strong>{{ tariff.name }}</strong>
-                        </td>
-                        <td>
-                            <span style="font-weight: 500;">{{ tariff.rate_per_unit }}</span> ₽
-                        </td>
+                        <td class="tariff-name">{{ tariff.name }}</td>
+                        <td><span class="rate-value">{{ tariff.rate_per_unit }}</span> ₽</td>
                         <td>{{ tariff.get_unit_display }}</td>
                         <td>
                             {% if not tariff.is_active %}
@@ -522,10 +557,8 @@
                                 <span class="text-muted">Бессрочно</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <span class="text-muted">{{ tariff.created_at|date:"d.m.Y H:i" }}</span>
-                        </td>
-                        {% if user.is_superuser%}
+                        <td class="text-muted">{{ tariff.created_at|date:"d.m.Y H:i" }}</td>
+                        {% if user.is_superuser %}
                         <td>
                             <div class="action-buttons">
                                 <a href="{% url 'payment_service:tariff_edit' tariff.id %}" 
@@ -563,7 +596,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7">
+                        <td colspan="{% if user.is_superuser %}7{% else %}6{% endif %}">
                             <div class="empty-state">
                                 <i class="fas fa-chart-line"></i>
                                 <p>Тарифы не найдены</p>
@@ -580,10 +613,12 @@
                                     Сбросить фильтры
                                 </a>
                                 {% else %}
-                                <a href="{% url 'payment_service:tariff_create' %}" class="btn-primary" style="margin-top: 16px;">
-                                    <i class="fas fa-plus"></i>
-                                    Создать тариф
-                                </a>
+                                    {% if user.is_superuser %}
+                                    <a href="{% url 'payment_service:tariff_create' %}" class="btn-create" style="margin-top: 16px;">
+                                        <i class="fas fa-plus"></i>
+                                        Создать тариф
+                                    </a>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </td>
@@ -594,9 +629,9 @@
         </div>
         
         {% if tariffs %}
-        <div style="padding: 16px 20px; border-top: 1px solid #e0e0e0; background: #f8f9fa; font-size: 13px; color: #666;">
-            <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
-            Всего отображается {{ tariffs|length }} тарифов
+        <div class="info-footer">
+            <span><i class="fas fa-info-circle"></i> Всего отображается {{ tariffs|length }} тарифов</span>
+            <span><i class="fas fa-chart-line"></i> Активных: {{ tariffs|length }}</span>
         </div>
         {% endif %}
     </div>

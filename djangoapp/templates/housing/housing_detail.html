@@ -100,7 +100,7 @@
     }
     
     .info-header i {
-        color: #28a745;
+        color: #007bff;
     }
     
     .housing-id {
@@ -408,7 +408,7 @@
 <div class="housing-detail-container">
     <div class="page-header">
         <h1>
-            <i class="fas fa-door-open" style="color: #28a745;"></i>
+            <i class="fas fa-door-open" style="color: #007bff;"></i>
             Жилое помещение
         </h1>
         <a href="#" onclick="goBack(); return false;" class="back-link">
@@ -493,7 +493,7 @@
         </div>
         <div class="owner-body">
             {% if unit.owner %}
-                <a href="{% url 'profile' username=unit.owner.username %}" class="owner-link">
+                <a href="{% url 'user_profile:profile' username=unit.owner.username %}" class="owner-link">
                     <div class="owner-avatar">
                         <i class="fas fa-user-circle"></i>
                     </div>

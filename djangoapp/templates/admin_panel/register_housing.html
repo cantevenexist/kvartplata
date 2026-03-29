@@ -261,7 +261,7 @@
     }
     
     .create-header i {
-        color: #28a745;
+        color: #007bff;
     }
     
     .create-body {
@@ -358,7 +358,7 @@
     }
     
     .btn-primary {
-        background: #28a745;
+        background: #007bff;
         color: white;
         border: none;
         padding: 12px 24px;
@@ -373,7 +373,7 @@
     }
     
     .btn-primary:hover {
-        background: #218838;
+        background: #0056b3;
     }
     
     .btn-primary:disabled {
@@ -474,7 +474,7 @@
 <div class="register-housing-container">
     <div class="page-header">
         <h1>
-            <i class="fas fa-home" style="color: #28a745;"></i>
+            <i class="fas fa-home" style="color: #007bff;"></i>
             Регистрация жилого помещения
         </h1>
         <a href="#" onclick="goBack(); return false;" class="back-link">
@@ -561,7 +561,7 @@
                         <td>#{{ result.id }}</td>
                         <td>
                             {{ result.username }}
-                            <a href="{% url 'profile' username=result.username %}" class="profile-link" target="_blank">
+                            <a href="{% url 'user_profile:profile' username=result.username %}" class="profile-link" target="_blank">
                                 <i class="fas fa-external-link-alt"></i>
                                 просмотр
                             </a>

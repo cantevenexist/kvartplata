@@ -184,7 +184,7 @@
     }
     
     .housing-header i {
-        color: #28a745;
+        color: #007bff;
     }
     
     .total-badge {
@@ -363,7 +363,7 @@
 <div class="user-housing-container">
     <div class="page-header">
         <h1>
-            <i class="fas fa-building" style="color: #28a745;"></i>
+            <i class="fas fa-building" style="color: #007bff;"></i>
             Жилые помещения 
             <span class="user-name">{{ profile_user.username }}</span>
         </h1>
@@ -393,7 +393,7 @@
                 <i class="fas fa-user"></i>
                 Информация о владельце
             </h2>
-            <a href="{% url 'profile' username=profile_user.username %}" class="profile-link">
+            <a href="{% url 'user_profile:profile' username=profile_user.username %}" class="profile-link">
                 <i class="fas fa-user-circle"></i>
                 Профиль пользователя
             </a>

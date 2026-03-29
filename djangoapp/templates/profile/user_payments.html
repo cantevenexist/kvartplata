@@ -4,93 +4,377 @@
 {% block title %}Мои платежи{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="card">
-        <div class="card-header">
-            <h3>Мои платежи</h3>
-            <a href="{% url 'user_profile:profile' username=request.user.username %}" class="btn btn-secondary btn-sm">
-                ← Назад в профиль
-            </a>
-        </div>
-        
-        <div class="card-body">
-            {% if payments %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>ID</th>
-                                <th>Адрес</th>
-                                <th>Сумма</th>
-                                <th>Способ оплаты</th>
-                                <th>Дата платежа</th>
-                                <th>Описание</th>
-                            </thead>
-                        </thead>
-                        <tbody>
-                            {% for payment in payments %}
-                            <tr>
-                                <td>#{{ payment.id }}</td>
-                                <td>{{ payment.housing_address }}</td>
-                                <td><strong>{{ payment.amount }} руб.</strong></td>
-                                <td>{{ payment.get_payment_method_display }}</td>
-                                <td>{{ payment.payment_date|date:"d.m.Y H:i" }}</td>
-                                <td>{{ payment.description|default:"—" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Пагинация -->
-                {% if is_paginated %}
-                <div class="pagination">
-                    {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}">←</a>
-                    {% endif %}
-                    
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <span class="current">{{ num }}</span>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <a href="?page={{ num }}">{{ num }}</a>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}">→</a>
-                    {% endif %}
-                </div>
-                {% endif %}
-                
-            {% else %}
-                <div class="alert alert-info text-center">
-                    <i class="fas fa-credit-card fa-3x mb-3"></i>
-                    <p>У вас нет платежей</p>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
 <style>
-    .pagination {
-        margin-top: 20px;
-        display: flex;
-        gap: 5px;
-        justify-content: center;
+    .payments-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
     }
-    .pagination a, .pagination span {
-        padding: 8px 12px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
         text-decoration: none;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        background: white;
+        border: 1px solid #ddd;
+    }
+    
+    .back-link:hover {
+        background: #f5f5f5;
+        color: #333;
+        transform: translateY(-1px);
+    }
+    
+    /* Карточка таблицы */
+    .table-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .table-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .table-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-header i {
         color: #007bff;
     }
+    
+    .total-badge {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        padding: 0 24px 24px 24px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+    
+    th {
+        text-align: left;
+        padding: 16px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    td {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+    
+    tr:hover td {
+        background: #f8f9fa;
+    }
+    
+    .payment-id {
+        font-family: monospace;
+        background: #e9ecef;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        color: #495057;
+        display: inline-block;
+    }
+    
+    .address-cell {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .amount-cell {
+        font-weight: 700;
+        font-size: 16px;
+        color: #28a745;
+    }
+    
+    .payment-method {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        background: #f8f9fa;
+        color: #666;
+    }
+    
+    .payment-method i {
+        font-size: 12px;
+    }
+    
+    .payment-date {
+        font-weight: 500;
+        color: #666;
+        white-space: nowrap;
+    }
+    
+    .description-cell {
+        max-width: 200px;
+        color: #666;
+        word-break: break-word;
+    }
+    
+    /* Пагинация */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 20px 24px;
+        border-top: 1px solid #e0e0e0;
+        background: #f8f9fa;
+    }
+    
+    .pagination a, .pagination span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 8px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #007bff;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .pagination a:hover {
+        background: #e7f3ff;
+        border-color: #007bff;
+        transform: translateY(-1px);
+    }
+    
     .pagination .current {
         background: #007bff;
         color: white;
         border-color: #007bff;
     }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+    
+    .empty-state .text-muted {
+        font-size: 14px;
+        color: #aaa;
+    }
+    
+    @media (max-width: 768px) {
+        .payments-container {
+            padding: 16px;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        th, td {
+            padding: 12px;
+        }
+        
+        .amount-cell {
+            font-size: 14px;
+        }
+        
+        .payment-method {
+            white-space: nowrap;
+        }
+    }
 </style>
+
+<div class="payments-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-credit-card" style="color: #007bff;"></i>
+            Мои платежи
+        </h1>
+        <a href="{% url 'user_profile:profile' username=request.user.username %}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Вернуться в профиль
+        </a>
+    </div>
+
+    <!-- Таблица платежей -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3>
+                <i class="fas fa-list"></i>
+                История платежей
+            </h3>
+            <span class="total-badge">
+                <i class="fas fa-credit-card"></i>
+                Всего: {{ payments|length }} записей
+            </span>
+        </div>
+        
+        {% if payments %}
+        <div class="table-wrapper">
+             <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Адрес</th>
+                        <th>Сумма</th>
+                        <th>Способ оплаты</th>
+                        <th>Дата платежа</th>
+                        <th>Описание</th>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                         <tr>
+                            <td>
+                                <span class="payment-id">#{{ payment.id }}</span>
+                            </td>
+                            <td class="address-cell">{{ payment.housing_address }}</td>
+                            <td class="amount-cell">{{ payment.amount|floatformat:2 }} ₽</td>
+                            <td>
+                                <span class="payment-method">
+                                    {% if payment.payment_method == 'cash' %}
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    {% elif payment.payment_method == 'card' %}
+                                        <i class="fas fa-credit-card"></i>
+                                    {% elif payment.payment_method == 'transfer' %}
+                                        <i class="fas fa-university"></i>
+                                    {% elif payment.payment_method == 'online' %}
+                                        <i class="fas fa-globe"></i>
+                                    {% elif payment.payment_method == 'automatic' %}
+                                        <i class="fas fa-robot"></i>
+                                    {% else %}
+                                        <i class="fas fa-receipt"></i>
+                                    {% endif %}
+                                    {{ payment.get_payment_method_display }}
+                                </span>
+                            </td>
+                            <td class="payment-date">
+                                <i class="far fa-calendar-alt"></i>
+                                {{ payment.payment_date|date:"d.m.Y H:i" }}
+                            </td>
+                            <td class="description-cell">
+                                {% if payment.description %}
+                                    {{ payment.description }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Пагинация -->
+            {% if is_paginated %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <span class="current">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-credit-card"></i>
+            <p>Нет платежей</p>
+            <p class="text-muted">
+                У вас пока нет совершенных платежей
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

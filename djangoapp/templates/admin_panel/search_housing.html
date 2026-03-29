@@ -6,7 +6,7 @@
 {% block content %}
 <style>
     .search-housing-container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 24px;
     }
@@ -38,27 +38,31 @@
         text-decoration: none;
         font-size: 14px;
         padding: 8px 16px;
-        border-radius: 4px;
+        border-radius: 6px;
         transition: all 0.2s;
+        background: white;
+        border: 1px solid #ddd;
     }
     
     .back-link:hover {
         background: #f5f5f5;
         color: #333;
+        transform: translateY(-1px);
     }
     
     /* Карточка поиска */
     .search-card {
         background: white;
         border: 1px solid #e0e0e0;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
         margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     
     .search-header {
         padding: 20px 24px;
-        background: #f8f9fa;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
         border-bottom: 1px solid #e0e0e0;
     }
     
@@ -102,11 +106,11 @@
     
     .form-control {
         width: 100%;
-        padding: 10px 12px;
+        padding: 12px 16px;
         border: 1px solid #ddd;
-        border-radius: 6px;
+        border-radius: 8px;
         font-size: 14px;
-        transition: border-color 0.2s;
+        transition: all 0.2s;
         box-sizing: border-box;
     }
     
@@ -118,60 +122,61 @@
     
     .search-actions {
         display: flex;
-        gap: 8px;
+        gap: 12px;
         flex-wrap: wrap;
     }
     
     .btn-primary {
-        background: #28a745;
+        background: linear-gradient(135deg, #28a745 0%, #218838 100%);
         color: white;
         border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
+        padding: 12px 24px;
+        border-radius: 8px;
         cursor: pointer;
         font-size: 14px;
         font-weight: 500;
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        transition: background-color 0.2s;
-        height: 42px;
+        transition: all 0.2s;
     }
     
     .btn-primary:hover {
-        background: #218838;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(40,167,69,0.3);
     }
     
     .btn-secondary {
         background: white;
         color: #333;
         border: 1px solid #ddd;
-        padding: 10px 20px;
-        border-radius: 6px;
+        padding: 12px 24px;
+        border-radius: 8px;
         cursor: pointer;
         font-size: 14px;
         display: inline-flex;
         align-items: center;
         gap: 8px;
         transition: all 0.2s;
-        height: 42px;
     }
     
     .btn-secondary:hover {
-        background: #f5f5f5;
+        background: #f8f9fa;
+        transform: translateY(-1px);
     }
     
     /* Результаты */
     .results-card {
         background: white;
         border: 1px solid #e0e0e0;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     
     .results-header {
         padding: 20px 24px;
-        background: #f8f9fa;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
         border-bottom: 1px solid #e0e0e0;
         display: flex;
         justify-content: space-between;
@@ -190,6 +195,10 @@
         gap: 8px;
     }
     
+    .results-header i {
+        color: #007bff;
+    }
+    
     .results-badge {
         background: #e7f3ff;
         color: #007bff;
@@ -202,10 +211,6 @@
         gap: 8px;
     }
     
-    .results-badge i {
-        font-size: 14px;
-    }
-    
     .table-wrapper {
         overflow-x: auto;
         padding: 0 24px 24px 24px;
@@ -215,8 +220,7 @@
         width: 100%;
         border-collapse: collapse;
         min-width: 1200px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
     }
     
@@ -231,7 +235,7 @@
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
-        border-bottom: 2px solid #ced4da;
+        border-bottom: 2px solid #dee2e6;
     }
     
     th {
@@ -263,12 +267,13 @@
     .housing-info {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
     }
     
     .housing-address {
-        font-weight: 500;
+        font-weight: 600;
         color: #333;
+        font-size: 15px;
     }
     
     .housing-meta {
@@ -276,14 +281,16 @@
         color: #666;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
     }
     
     .housing-id {
         font-family: monospace;
         background: #e9ecef;
-        padding: 2px 6px;
-        border-radius: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        display: inline-block;
     }
     
     .action-buttons {
@@ -295,10 +302,11 @@
     .action-link {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 6px 12px;
-        border-radius: 4px;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 6px;
         font-size: 13px;
+        font-weight: 500;
         text-decoration: none;
         transition: all 0.2s;
         white-space: nowrap;
@@ -311,6 +319,7 @@
     
     .action-link.view:hover {
         background: #d4e5ff;
+        transform: translateY(-1px);
     }
     
     .action-link.edit {
@@ -320,12 +329,13 @@
     
     .action-link.edit:hover {
         background: #ffe69c;
+        transform: translateY(-1px);
     }
     
     .owner-info {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
     }
     
     .owner-name {
@@ -352,28 +362,15 @@
     .owner-link {
         color: #007bff;
         text-decoration: none;
-        font-size: 12px;
-        margin-left: 4px;
+        font-size: 11px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
     
     .owner-link:hover {
         text-decoration: underline;
-    }
-    
-    .empty-owner {
-        color: #999;
-        font-style: italic;
-        font-size: 13px;
-    }
-    
-    .badge {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 500;
-        background: #e9ecef;
-        color: #495057;
+        color: #0056b3;
     }
     
     .divider-col {
@@ -400,7 +397,7 @@
     }
     
     .empty-state i {
-        font-size: 48px;
+        font-size: 64px;
         margin-bottom: 16px;
         opacity: 0.5;
     }
@@ -410,13 +407,18 @@
         font-size: 16px;
     }
     
+    .empty-state .text-muted {
+        font-size: 14px;
+        color: #aaa;
+    }
+    
     .messages {
         margin-bottom: 24px;
     }
     
     .message {
         padding: 14px 18px;
-        border-radius: 6px;
+        border-radius: 8px;
         margin-bottom: 12px;
         font-size: 14px;
         display: flex;
@@ -436,15 +438,14 @@
         color: #721c24;
     }
     
-    hr {
-        border: none;
-        border-top: 1px solid #e0e0e0;
-        margin: 24px 0;
-    }
-    
     @media (max-width: 768px) {
         .search-housing-container {
             padding: 16px;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
         }
         
         .search-form {
@@ -469,6 +470,25 @@
             flex-direction: column;
             align-items: flex-start;
         }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .action-link {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .divider-col {
+            display: none;
+        }
+        
+        .section-header th:first-child,
+        .section-header th:nth-child(2),
+        .section-header th:nth-child(3) {
+            border-right: none;
+        }
     }
 </style>
 
@@ -487,7 +507,7 @@
     {% if messages %}
     <div class="messages">
         {% for message in messages %}
-            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+            <div class="message {{ message.tags }}">
                 <i class="fas 
                     {% if message.tags == 'success' %}fa-check-circle
                     {% elif message.tags == 'error' %}fa-exclamation-circle
@@ -503,7 +523,7 @@
     <div class="search-card">
         <div class="search-header">
             <h2>
-                <i class="fas fa-filter"></i>
+                <i class="fas fa-sliders-h"></i>
                 Параметры поиска
             </h2>
         </div>
@@ -513,7 +533,7 @@
                 
                 <div class="form-group">
                     <label>
-                        <i class="fas fa-map-marker-alt" style="margin-right: 6px; color: #666;"></i>
+                        <i class="fas fa-map-marker-alt"></i>
                         Поиск по адресу или владельцу
                     </label>
                     <input type="text" 
@@ -556,16 +576,16 @@
         
         {% if results %}
         <div class="table-wrapper">
-            <table>
+             <table>
                 <thead>
                     <tr class="section-header">
                         <th colspan="3">
-                            <i class="fas fa-door-open" style="margin-right: 6px;"></i>
+                            <i class="fas fa-door-open"></i>
                             Жилое помещение
                         </th>
                         <th style="width: 30px; background: #e9ecef;"></th>
                         <th colspan="6">
-                            <i class="fas fa-user" style="margin-right: 6px;"></i>
+                            <i class="fas fa-user"></i>
                             Владелец
                         </th>
                     </tr>
@@ -592,10 +612,12 @@
                         <td>
                             <div class="housing-info">
                                 <span class="housing-address">{{ result.unit }}</span>
-                                <span class="housing-meta">
-                                    <i class="fas fa-arrows-alt"></i>
-                                    {{ result.unit.total_area }} м²
-                                </span>
+                                <div class="housing-meta">
+                                    <span>
+                                        <i class="fas fa-arrows-alt"></i>
+                                        {{ result.unit.total_area }} м²
+                                    </span>
+                                </div>
                             </div>
                         </td>
                         <td>
@@ -629,7 +651,7 @@
                                     <i class="fas fa-at"></i>
                                     {{ result.username }}
                                 </span>
-                                <a href="{% url 'profile' username=result.username %}" 
+                                <a href="{% url 'user_profile:profile' username=result.username %}" 
                                    class="owner-link">
                                     <i class="fas fa-external-link-alt"></i>
                                     просмотр профиля
@@ -652,7 +674,7 @@
                         </td>
                         {% else %}
                         <td colspan="6" style="text-align: center; color: #999;">
-                            <i class="fas fa-user-slash" style="margin-right: 6px;"></i>
+                            <i class="fas fa-user-slash"></i>
                             Владелец не указан
                         </td>
                         {% endif %}
@@ -665,7 +687,7 @@
         <div class="empty-state">
             <i class="fas fa-home"></i>
             <p>Помещения не найдены</p>
-            <p class="text-muted" style="font-size: 14px;">
+            <p class="text-muted">
                 {% if query %}
                     Попробуйте изменить параметры поиска
                 {% else %}

@@ -16,4 +16,7 @@ urlpatterns = [
     path('payments/', views.PaymentListView.as_view(), name='payment_list'),
     path('api/register-payment/', views.api_register_payment, name='api_register_payment'),
     path('debts/', views.DebtListView.as_view(), name='debt_list'),
+    path('reports/', views.ReportListView.as_view(), name='report_list'),
+    path('reports/generate/', views.GenerateReportView.as_view(), name='generate_report'),
+    path('reports/download/<int:pk>/', views.DownloadReportView.as_view(), name='download_report'),
 ]

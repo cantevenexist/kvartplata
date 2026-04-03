@@ -1142,3 +1142,62 @@ class PaymentCreateView(BuhRequiredMixin, TemplateView):
         if remaining_prepayment != prepayment:
             unit.prepayment = remaining_prepayment
             unit.save()
+
+
+from .report_generator import generate_full_report
+from django.http import HttpResponse
+from .models import Report
+
+class ReportListView(BuhRequiredMixin, ListView):
+    """Список отчетов"""
+    model = Report
+    template_name = 'payment_service/report_list.html'
+    context_object_name = 'reports'
+    paginate_by = 30
+    
+    def get_queryset(self):
+        return super().get_queryset().order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['show_form'] = self.request.GET.get('show_form') == '1'
+        return context
+
+
+class GenerateReportView(BuhRequiredMixin, View):
+    """Генерация отчета"""
+    
+    def post(self, request, *args, **kwargs):
+        period_start = request.POST.get('period_start')
+        period_end = request.POST.get('period_end')
+        
+        period_start_date = None
+        period_end_date = None
+        
+        if period_start:
+            period_start_date = datetime.strptime(period_start, '%Y-%m-%d').date()
+        if period_end:
+            period_end_date = datetime.strptime(period_end, '%Y-%m-%d').date()
+        
+        try:
+            report = generate_full_report(request.user, period_start_date, period_end_date)
+            messages.success(request, f'Отчет успешно создан')
+        except Exception as e:
+            messages.error(request, f'Ошибка: {e}')
+        
+        return redirect('payment_service:report_list')
+
+
+class DownloadReportView(BuhRequiredMixin, View):
+    """Скачивание отчета"""
+    
+    def get(self, request, pk):
+        report = get_object_or_404(Report, pk=pk)
+        
+        if report.file:
+            response = HttpResponse(report.file.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = f'attachment; filename="{report.file.name.split("/")[-1]}"'
+            return response
+        
+        messages.error(request, 'Файл не найден')
+        return redirect('payment_service:report_list')

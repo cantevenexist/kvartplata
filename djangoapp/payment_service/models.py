@@ -256,3 +256,51 @@ class Debt(models.Model):
 
     def __str__(self):
         return f"Долг {self.housing_id} - {self.period} - {self.total_amount}"
+
+
+class Report(models.Model):
+    """
+    Модель для хранения сгенерированных отчетов
+    """
+    REPORT_TYPES = [
+        ('full', 'Полный отчет'),
+    ]
+    
+    file = models.FileField(
+        upload_to='reports/%Y/%m/%d/',
+        verbose_name='Файл отчета'
+    )
+    report_type = models.CharField(
+        max_length=20,
+        choices=REPORT_TYPES,
+        default='full',
+        verbose_name='Тип отчета'
+    )
+    created_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='Кем создан'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания'
+    )
+    period_start = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Начало периода'
+    )
+    period_end = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Конец периода'
+    )
+    
+    class Meta:
+        verbose_name = 'Отчет'
+        verbose_name_plural = 'Отчеты'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Отчет от {self.created_at.strftime('%d.%m.%Y %H:%M')}"

@@ -1,0 +1,488 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Отчеты{% endblock %}
+
+{% block content %}
+<style>
+    .reports-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 0;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .btn-create {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-create:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .btn-cancel {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-cancel:hover {
+        background: #f8f9fa;
+        transform: translateY(-1px);
+    }
+    
+    /* Карточка формы создания отчета */
+    .form-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .form-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .form-header h4 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .form-header i {
+        color: #007bff;
+    }
+    
+    .form-body {
+        padding: 24px;
+    }
+    
+    /* Карточка таблицы */
+    .table-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .table-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .table-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-header i {
+        color: #007bff;
+    }
+    
+    .total-badge {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        padding: 0 24px 24px 24px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px;
+    }
+    
+    th {
+        text-align: left;
+        padding: 16px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: 600;
+        color: #333;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    td {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+    
+    tr:hover td {
+        background: #f8f9fa;
+    }
+    
+    .report-id {
+        font-family: monospace;
+        background: #e9ecef;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        display: inline-block;
+    }
+    
+    .period-badge {
+        background: #e7f3ff;
+        color: #007bff;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-block;
+    }
+    
+    .file-size {
+        font-weight: 500;
+        color: #007bff;
+    }
+    
+    .btn-download {
+        background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+        color: white;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-download:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(40,167,69,0.3);
+    }
+    
+    .info-alert {
+        background: #e7f3ff;
+        border-left: 4px solid #007bff;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: #004085;
+    }
+    
+    .info-alert i {
+        font-size: 16px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+    
+    /* Пагинация */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 20px 24px;
+        border-top: 1px solid #e0e0e0;
+        background: #f8f9fa;
+    }
+    
+    .pagination a, .pagination span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 8px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #007bff;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .pagination a:hover {
+        background: #e7f3ff;
+        border-color: #007bff;
+        transform: translateY(-1px);
+    }
+    
+    .pagination .current {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    @media (max-width: 768px) {
+        .reports-container {
+            padding: 16px;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        th, td {
+            padding: 12px;
+        }
+        
+        .btn-download {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="reports-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-chart-bar" style="color: #007bff;"></i>
+            Отчеты
+        </h1>
+        <a href="?show_form=1" class="btn-create">
+            <i class="fas fa-plus"></i>
+            Создать отчет
+        </a>
+    </div>
+
+    <!-- Форма создания отчета -->
+    {% if show_form %}
+    <div class="form-card">
+        <div class="form-header">
+            <h4>
+                <i class="fas fa-file-alt"></i>
+                Создание нового отчета
+            </h4>
+        </div>
+        <div class="form-body">
+            <form method="post" action="{% url 'payment_service:generate_report' %}">
+                {% csrf_token %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <div class="form-group">
+                        <label>Период (начало)</label>
+                        <input type="date" name="period_start" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Период (конец)</label>
+                        <input type="date" name="period_end" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" class="btn-create" style="margin: 0;">
+                                <i class="fas fa-file-export"></i>
+                                Создать
+                            </button>
+                            <a href="{% url 'payment_service:report_list' %}" class="btn-cancel">
+                                <i class="fas fa-times"></i>
+                                Отмена
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-alert">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Если период не указан, будут включены все данные.</span>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Таблица отчетов -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3>
+                <i class="fas fa-list"></i>
+                Список отчетов
+            </h3>
+            <span class="total-badge">
+                <i class="fas fa-file-alt"></i>
+                Всего: {{ reports|length }}
+            </span>
+        </div>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Дата создания</th>
+                        <th>Создал</th>
+                        <th>Период</th>
+                        <th>Размер</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>
+                            <span class="report-id">#{{ report.id }}</span>
+                        </td>
+                        <td class="text-muted">{{ report.created_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ report.created_by.get_full_name|default:report.created_by.username }}</td>
+                        <td>
+                            {% if report.period_start %}
+                                <span class="period-badge">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {{ report.period_start|date:"d.m.Y" }} - {{ report.period_end|date:"d.m.Y" }}
+                                </span>
+                            {% else %}
+                                <span class="period-badge" style="background: #e9ecef; color: #495057;">
+                                    <i class="fas fa-globe"></i>
+                                    Все периоды
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="file-size">{{ report.file.size|filesizeformat }}</td>
+                        <td>
+                            <a href="{% url 'payment_service:download_report' report.id %}" class="btn-download">
+                                <i class="fas fa-download"></i>
+                                Скачать
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <p>Нет созданных отчетов</p>
+                                <p class="text-muted">
+                                    Нажмите "Создать отчет" для формирования первого отчета
+                                </p>
+                                <a href="?show_form=1" class="btn-create" style="margin-top: 16px;">
+                                    <i class="fas fa-plus"></i>
+                                    Создать отчет
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Пагинация -->
+        {% if is_paginated %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&show_form={{ show_form }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="current">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}&show_form={{ show_form }}">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&show_form={{ show_form }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if reports %}
+        <div class="info-footer" style="padding: 16px 24px; border-top: 1px solid #e0e0e0; background: #f8f9fa; font-size: 13px; color: #666;">
+            <i class="fas fa-info-circle"></i>
+            Всего отчетов: {{ reports|length }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
